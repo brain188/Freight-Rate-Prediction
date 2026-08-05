@@ -97,7 +97,7 @@ features:
   fourier_order: 3
   fourier_period: 365.25
 
-  use_day_of_week: true
+  use_day_of_week: false
   use_coordinates: true
   use_log_distance: true
 
@@ -110,7 +110,9 @@ features:
 model:
   # Predict log(rate). The raw target is right-skewed (1.90) and near-symmetric
   # in logs (-0.49), so this stops long hauls dominating the error.
-  target_transform: log
+  target_transform: log_rate_per_mile
+
+  seasonal_offset: false
 
   estimator: lightgbm
   params:

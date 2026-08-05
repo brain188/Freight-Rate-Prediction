@@ -255,6 +255,7 @@ class ModelConfig:
     estimator: str
     params: dict[str, Any]
     early_stopping_rounds: int
+    seasonal_offset: bool = False
 
     def validate(self) -> None:
         """Check the transform is one we support.
@@ -262,7 +263,7 @@ class ModelConfig:
         Raises:
             ConfigError: If the target transform is unrecognised.
         """
-        allowed = {"log", "rate_per_mile", "none"}
+        allowed = {"log", "rate_per_mile", "log_rate_per_mile", "none"}
         if self.target_transform not in allowed:
             raise ConfigError(
                 f"model.target_transform must be one of {sorted(allowed)}, "
