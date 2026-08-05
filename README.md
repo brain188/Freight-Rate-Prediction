@@ -10,7 +10,7 @@ every decision below.
 
 ## Results
 
-Scored on a time-based holdout — trained on January to August, tested on
+Scored on a time-based holdout. Trained on January to August, tested on
 September and October, months the model had never seen.
 
 | Model | RMSE | MAE | MAPE | R² | Bias |
@@ -29,7 +29,7 @@ forward can easily drift high or low, and this one does not.
 ![System architecture](reports/figures/architecture.png)
 
 Training fits every transform once and persists it. Inference reloads those exact
-transforms and refits nothing — the imputation medians, city coordinates, category
+transforms and refits nothing. The imputation medians, city coordinates, category
 codes, and seasonal curve all come from the training run. That single rule is why
 the two pipelines are separate modules sharing one bundle rather than one pipeline
 with a flag.
@@ -47,7 +47,7 @@ python entrypoint/train.py
 python entrypoint/predict.py --score
 ```
 
-Takes about 90 seconds end to end. That produces everything:
+Takes a few seconds(about 90 seconds) end to end. That produces everything:
 
 ```
 validation_predictions.csv               the submission, 12,000 rows
@@ -64,7 +64,7 @@ make help       # every target
 ```
 
 `make` is not available on Windows by default. Use the two `python` commands
-above instead — they do exactly the same thing.
+above instead, they do exactly the same thing.
 
 ### Running the scorer on its own
 
@@ -97,7 +97,7 @@ Rates are judged **per mile**, not in dollars. A $12,000 rate is normal over
 from a long haul.
 
 Cleaning removed 669 training rows (1.39%) and left the standard deviation of
-rate per mile 53% lower with the mean and median unchanged — noise removed, not
+rate per mile 53% lower with the mean and median unchanged. noise removed, not
 signal.
 
 Two rules govern the code:
@@ -125,7 +125,7 @@ Two rules govern the code:
 Three decisions worth explaining.
 
 **Coordinates are kept, and they matter.** Eight cities appear only in the
-validation set — including Chicago and Charlotte — covering **12% of the loads to
+validation set, including Chicago and Charlotte, covering **12% of the loads to
 be priced**. Encoding cities by name alone would break on all of them. Latitude
 and longitude are continuous, so an unfamiliar city still has a usable position.
 Unknown names map to a reserved code and set a flag the model can split on.
@@ -136,7 +136,7 @@ every prediction. The calendar reaches the model only through bounded Fourier
 terms and a fitted seasonal curve, both of which are defined in December.
 
 **`market_index` and `quote_signal` are excluded.** Neither is a market-level
-indicator despite the names — both vary hundreds of times within a single date.
+indicator despite the names. Both vary hundreds of times within a single date.
 They correlate with rate per mile at 0.18 and 0.10, against distance at 0.91. And
 neither exists in `december_chart_inputs.csv`. Dropping them costs almost nothing
 and means one model serves both output files.
@@ -162,7 +162,7 @@ date reaches back into training.
 `random_split` exists in `src/validation/splitters.py` but is used only for the
 comparison in the report, and logs a warning when called.
 
-Once validation is done the final model refits on all 47,331 cleaned rows —
+Once validation is done the final model refits on all 47,331 cleaned rows,
 holding back September and October would waste the two months closest to what is
 being predicted.
 
@@ -258,12 +258,12 @@ pytest -m "not integration"  # 44 tests, no data files needed
 
 Four areas, each guarding a specific failure:
 
-- **Cleaning** — sign flips recovered, medians reused rather than refitted, and
+- **Cleaning** : sign flips recovered, medians reused rather than refitted, and
   no row ever dropped at prediction time
-- **Features** — unseen cities produce a code rather than a NaN, seasonal values
+- **Features** : unseen cities produce a code rather than a NaN, seasonal values
   stay defined and in range for December, no month column reaches the model
-- **Splitters** — no fold leaks, and the guard rejects a random split
-- **Submission** — mirrors every rule in `score.py`
+- **Splitters** : no fold leaks, and the guard rejects a random split
+- **Submission** : mirrors every rule in `score.py`
 
 The suite was mutation-tested: four deliberate bugs were introduced to check the
 tests would catch them. The first attempt caught three of four, and the test that
