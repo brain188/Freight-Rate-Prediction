@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+.ruff_cache/
+
+
+data/02-preprocessed/*
+data/03-features/*
+data/04-predictions/*
+!data/*/.gitkeep
+

@@ -1,0 +1,66 @@
+# ---------------------------------------------------------------------------
+# Logging configuration, loaded through logging.config.dictConfig.
+#
+# Console stays readable while running; the file keeps the full detail so a run
+# can be traced afterwards without rerunning anything.
+# ---------------------------------------------------------------------------
+
+version: 1
+disable_existing_loggers: false
+
+formatters:
+  # Short and easy to scan while a pipeline is running.
+  console:
+    format: "%(asctime)s | %(levelname)-8s | %(message)s"
+    datefmt: "%H:%M:%S"
+
+  # Full detail for the log file, including where the message came from.
+  detailed:
+    format: "%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s:%(lineno)d | %(message)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: console
+    stream: ext://sys.stdout
+
+  # Rotates so a long training run cannot fill the disk.
+  file:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: detailed
+    filename: logs/pipeline.log
+    maxBytes: 5242880
+    backupCount: 3
+    encoding: utf8
+
+  # Errors kept separately so failures are easy to find.
+  error_file:
+    class: logging.handlers.RotatingFileHandler
+    level: ERROR
+    formatter: detailed
+    filename: logs/errors.log
+    maxBytes: 1048576
+    backupCount: 2
+    encoding: utf8
+
+loggers:
+  # Everything under src/ inherits these handlers.
+  src:
+    level: DEBUG
+    handlers: [console, file, error_file]
+    propagate: false
+
+  # Third-party libraries are noisy at INFO, so only warnings get through.
+  matplotlib:
+    level: WARNING
+    propagate: true
+  lightgbm:
+    level: WARNING
+    propagate: true
+
+root:
+  level: INFO
+  handlers: [console, file, error_file]

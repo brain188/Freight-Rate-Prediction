@@ -1,0 +1,16 @@
+# --- Scorer requirements -----------------------------------
+matplotlib>=3.8,<4
+numpy>=1.26,<3
+pandas>=2.0,<3
+
+# --- Modelling --------------------------------------------------------------
+scikit-learn>=1.5,<2          # splitters, metrics, preprocessing, baselines
+lightgbm>=4.3,<5              # gradient-boosted residual model
+scipy>=1.11,<2                # Fourier / seasonal terms, statistical checks
+
+# --- Configuration & persistence -------------------------------------------
+pyyaml>=6.0,<7                # config/config.yaml loading
+joblib>=1.3,<2                # model artifact serialisation
+
+# --- Tabular I/O ------------------------------------------------------------
+pyarrow>=15.0,<22             # fast parquet for intermediate data/ artifacts
