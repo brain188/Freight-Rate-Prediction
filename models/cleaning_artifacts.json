@@ -1,0 +1,9 @@
+{
+  "weight_median_by_equipment": {
+    "Dry Van": 31444.0,
+    "Flatbed": 31532.5,
+    "Reefer": 31577.0
+  },
+  "weight_median_overall": 31496.0,
+  "market_index_median": 1.0558
+}

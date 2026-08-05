@@ -16,7 +16,7 @@ project:
 paths:
   train: data/train-test.csv
   validation: data/validation.csv
-  december: data/december-chart-inputs.csv
+  december: data/december_chart_inputs.csv
   submission_template: data/validation-predictions-template.csv
 
   # Intermediate artifacts written by the pipeline.

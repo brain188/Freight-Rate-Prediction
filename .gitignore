@@ -1,13 +1,29 @@
+# Virtual environments
 .venv/
+venv/
+env/
+
+# Python caches
 __pycache__/
 *.py[cod]
-.ipynb_checkpoints/
+*.egg-info/
 .pytest_cache/
 .ruff_cache/
 
+# Notebooks
+.ipynb_checkpoints/
 
+# Logs are regenerated on every run
+logs/
+
+# Intermediate pipeline artifacts, rebuilt by `make all`
 data/02-preprocessed/*
 data/03-features/*
 data/04-predictions/*
-!data/*/.gitkeep
+!data/**/.gitkeep
 
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
