@@ -1,0 +1,57 @@
+# Brings up the API and its monitoring database.
+#
+#   docker compose up --build
+#
+#   API   http://localhost:8000/docs
+#   DB    localhost:5432
+#
+# Later phases add MLflow and the dashboard as further services.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: freight-db
+    environment:
+      POSTGRES_USER: freight
+      POSTGRES_PASSWORD: freight
+      POSTGRES_DB: freight_monitoring
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Applied on first start only, when the data directory is empty.
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U freight -d freight_monitoring"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: freight-rate-api:latest
+    container_name: freight-rate-api
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://freight:freight@db:5432/freight_monitoring
+      LOG_LEVEL: INFO
+    volumes:
+      # Read only, so a retrain can swap the model without a rebuild.
+      - ./models:/app/models:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  pgdata:
