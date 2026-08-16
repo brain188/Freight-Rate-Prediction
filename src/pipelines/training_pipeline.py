@@ -147,6 +147,10 @@ def run_training(config: Config) -> TrainingResult:
     with log_step(logger, "Saving the model bundle"):
         bundle.save(config.paths.model_dir)
 
+    # Logged after the bundle is on disk, so a tracking failure cannot lose a
+    # trained model. Returns None when no tracking server is reachable.
+    _log_to_mlflow(config, result)
+
     logger.info(
         "Model beats the baseline by %.1f%% on the holdout (RMSE $%.2f vs $%.2f)",
         result.improvement_over_baseline,
@@ -154,6 +158,23 @@ def run_training(config: Config) -> TrainingResult:
         baseline_scores["rmse"],
     )
     return result
+
+
+def _log_to_mlflow(config: Config, result: TrainingResult) -> None:
+    """Record the run in MLflow, if a tracking server is reachable.
+
+    Args:
+        config: Loaded project configuration.
+        result: What the training run produced.
+    """
+    try:
+        from tracking.mlflow_tracking import get_tracker
+
+        run_id = get_tracker().log_training_run(config, result, config.paths.model_dir)
+        if run_id:
+            result.bundle.metadata["mlflow_run_id"] = run_id
+    except ImportError:
+        logger.warning("Could not log this run to MLflow", exc_info=False)
 
 
 def _score_baseline(holdout: Split, config: Config) -> Scores:
