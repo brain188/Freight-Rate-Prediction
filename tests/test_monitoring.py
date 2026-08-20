@@ -208,3 +208,67 @@ def test_empty_store_returns_empty_results(store):
     assert load_predictions(store).empty
     assert traffic_summary(store)["n_predictions"] == 0
     assert snapshot(store).n_predictions == 0
+
+
+def test_sqlite_uses_write_ahead_logging(tmp_path):
+    """SQLite is configured so a reader does not block a writer.
+
+    Without this, the dashboard polling the same file the API logs to produces
+    "database is locked" errors under any real load.
+    """
+    from sqlalchemy import text
+
+    instance = PredictionStore(f"sqlite:///{tmp_path / 'wal.db'}")
+    instance.connect()
+
+    with instance.engine.connect() as connection:
+        assert connection.execute(text("PRAGMA journal_mode")).scalar() == "wal"
+        assert connection.execute(text("PRAGMA busy_timeout")).scalar() > 0
+
+
+def test_concurrent_writers_and_readers_do_not_lock(tmp_path):
+    """Several processes can write and read at once without failing.
+
+    This reproduces the situation that breaks a naive SQLite setup: the API
+    logging predictions while the dashboard polls the same file.
+    """
+    import threading
+
+    from monitoring.performance import load_predictions
+
+    url = f"sqlite:///{tmp_path / 'concurrent.db'}"
+    PredictionStore(url).connect()
+
+    failures = []
+
+    def write(tag: str) -> None:
+        store = PredictionStore(url)
+        store.connect()
+        for batch in range(5):
+            written = store.log_predictions(
+                [make_record(f"{tag}{batch}{i}") for i in range(50)]
+            )
+            if written == 0:
+                failures.append(f"write {tag}{batch}")
+
+    def read() -> None:
+        store = PredictionStore(url)
+        store.connect()
+        for _ in range(10):
+            try:
+                load_predictions(store, 90)
+            except Exception as exc:
+                failures.append(f"read: {exc}")
+
+    threads = [
+        threading.Thread(target=write, args=("a",)),
+        threading.Thread(target=write, args=("b",)),
+        threading.Thread(target=read),
+    ]
+
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert not failures, f"concurrent access failed: {failures[:3]}"

@@ -11,12 +11,15 @@ from __future__ import annotations
 from dash import dash_table, html
 
 from dashboard.theme import (
-    ALERT,
     INK,
-    LINE,
     MONO,
     MUTED,
     OK,
+    TABLE_CELL_STYLE,
+    TABLE_CONTAINER_STYLE,
+    TABLE_DATA_STYLE,
+    TABLE_HEADER_STYLE,
+    TABLE_ROW_HOVER,
     TEAL,
     TEAL_LIGHT,
     card,
@@ -175,15 +178,11 @@ def _versions(versions: list, tracker) -> html.Div:
                 {"name": "Created", "id": "created"},
                 {"name": "Run", "id": "run"},
             ],
-            style_cell={
-                "fontFamily": MONO, "fontSize": "13px",
-                "padding": "10px 14px", "textAlign": "left", "border": "none",
-            },
-            style_header={
-                "backgroundColor": TEAL_LIGHT, "fontWeight": 700,
-                "color": INK, "border": "none", "fontSize": "12px",
-            },
-            style_data={"borderBottom": f"1px solid {LINE}"},
+            style_table=TABLE_CONTAINER_STYLE,
+            style_cell={**TABLE_CELL_STYLE, "textAlign": "left"},
+            style_header=TABLE_HEADER_STYLE,
+            style_data=TABLE_DATA_STYLE,
+            css=TABLE_ROW_HOVER,
             style_data_conditional=[{
                 "if": {"filter_query": "{stage} = 'Production'"},
                 "color": OK, "fontWeight": 600,
@@ -247,19 +246,15 @@ def _runs(runs: list, tracker) -> html.Div:
         dash_table.DataTable(
             data=rows,
             columns=columns,
-            style_cell={
-                "fontFamily": MONO, "fontSize": "12.5px",
-                "padding": "9px 13px", "textAlign": "right", "border": "none",
-            },
+            style_table=TABLE_CONTAINER_STYLE,
+            style_cell={**TABLE_CELL_STYLE, "textAlign": "right"},
             style_cell_conditional=[
                 {"if": {"column_id": c}, "textAlign": "left"}
                 for c in ("run", "name", "started")
             ],
-            style_header={
-                "backgroundColor": TEAL_LIGHT, "fontWeight": 700,
-                "color": INK, "border": "none", "fontSize": "12px",
-            },
-            style_data={"borderBottom": f"1px solid {LINE}"},
+            style_header=TABLE_HEADER_STYLE,
+            style_data=TABLE_DATA_STYLE,
+            css=TABLE_ROW_HOVER,
             page_size=12,
         ),
         html.Div([

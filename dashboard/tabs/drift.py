@@ -13,16 +13,25 @@ from __future__ import annotations
 
 import plotly.graph_objects as go
 from dash import dash_table, dcc, html
-from monitoring.drift import PSI_ALERT, PSI_WARN, UNKNOWN_CITY_ALERT, UNKNOWN_CITY_WARN
 
+from dashboard.charts import (
+    LEGEND_DRIFT,
+    LEGEND_OK,
+    LEGEND_REFERENCE,
+    density_plot,
+    split_production,
+)
 from dashboard.theme import (
     ALERT,
     CHART_LAYOUT,
     INK,
-    LINE,
-    MONO,
     MUTED,
     OK,
+    TABLE_CELL_STYLE,
+    TABLE_CONTAINER_STYLE,
+    TABLE_DATA_STYLE,
+    TABLE_HEADER_STYLE,
+    TABLE_ROW_HOVER,
     TEAL,
     TEAL_LIGHT,
     WARN,
@@ -33,14 +42,17 @@ from dashboard.theme import (
     row,
     section,
 )
+from monitoring.drift import PSI_ALERT, PSI_WARN, UNKNOWN_CITY_ALERT, UNKNOWN_CITY_WARN
 
 
-def render(drift: dict, daily_unknown=None) -> html.Div:
+def render(drift: dict, daily_unknown=None, production=None, reference=None) -> html.Div:
     """Build the drift tab.
 
     Args:
         drift: The drift report.
         daily_unknown: Unknown city rate per day, if available.
+        production: Logged predictions, for the density plots.
+        reference: Cleaned training data, for the density plots.
 
     Returns:
         The tab content.
@@ -53,6 +65,8 @@ def render(drift: dict, daily_unknown=None) -> html.Div:
 
     return html.Div([
         _summary(drift),
+        _model_drift(production, reference),
+        _data_drift(production, reference),
         _unknown_cities(drift, daily_unknown),
         _feature_table(drift),
         _evidently_panel(),
@@ -104,6 +118,134 @@ def _summary(drift: dict) -> html.Div:
                 f"against {drift['n_reference']:,} training rows",
             ),
         ]),
+    ])
+
+
+def _legend_note() -> html.Div:
+    """Explain what the three curves on every density plot mean.
+
+    Returns:
+        The explanation block.
+    """
+    items = [
+        (LEGEND_REFERENCE, "the 47,331 cleaned loads the model learned from"),
+        (LEGEND_OK, "live traffic on lanes the model has priced before"),
+        (LEGEND_DRIFT, "live traffic involving a city with no training history"),
+    ]
+
+    return html.Div([
+        html.Div([
+            html.Span(f"{label}: ", style={"fontWeight": 700, "color": INK}),
+            html.Span(meaning, style={"color": MUTED}),
+        ], style={"marginBottom": "5px"})
+        for label, meaning in items
+    ], style={"fontSize": "12px", "lineHeight": "1.5", "marginTop": "12px"})
+
+
+def _model_drift(production, reference) -> html.Div:
+    """Compare the distribution of what the model predicts against what it learned.
+
+    Args:
+        production: Logged predictions.
+        reference: Cleaned training data.
+
+    Returns:
+        The panel.
+    """
+    if production is None or production.empty or reference is None or reference.empty:
+        return html.Div()
+
+    ok_rate, drift_rate = split_production(production, "predicted_rate")
+    ok_rpm, drift_rpm = split_production(production, "rate_per_mile")
+
+    reference_rate = reference["posted_rate"]
+    reference_rpm = reference["posted_rate"] / reference["distance"]
+
+    return card([
+        section(
+            "Model drift",
+            "What the model is predicting, against what it was trained on. If the "
+            "production curves sit away from the training curve, the model is "
+            "quoting into territory it did not learn from. Rate per mile is the "
+            "more revealing of the two, because it removes the effect of distance.",
+        ),
+        row([
+            html.Div(
+                dcc.Graph(
+                    figure=density_plot(
+                        reference_rate, ok_rate, drift_rate,
+                        "Predicted rate", "rate ($)",
+                    ),
+                    config={"displayModeBar": False},
+                ),
+                style={"flex": "1", "minWidth": "340px"},
+            ),
+            html.Div(
+                dcc.Graph(
+                    figure=density_plot(
+                        reference_rpm, ok_rpm, drift_rpm,
+                        "Rate per mile", "$ per mile",
+                    ),
+                    config={"displayModeBar": False},
+                ),
+                style={"flex": "1", "minWidth": "340px"},
+            ),
+        ]),
+        _legend_note(),
+    ])
+
+
+def _data_drift(production, reference) -> html.Div:
+    """Compare the inputs arriving against the inputs trained on.
+
+    Args:
+        production: Logged predictions.
+        reference: Cleaned training data.
+
+    Returns:
+        The panel.
+    """
+    if production is None or production.empty or reference is None or reference.empty:
+        return html.Div()
+
+    charts = []
+
+    for column, title, label in [
+        ("distance", "Distance", "miles"),
+        ("weight", "Weight", "pounds"),
+    ]:
+        if column not in production.columns or column not in reference.columns:
+            continue
+
+        ok_values, drift_values = split_production(production, column)
+
+        # Weights are sign flipped in this data, so compare magnitudes.
+        charts.append(html.Div(
+            dcc.Graph(
+                figure=density_plot(
+                    reference[column].abs(),
+                    ok_values.abs(),
+                    drift_values.abs(),
+                    title,
+                    label,
+                ),
+                config={"displayModeBar": False},
+            ),
+            style={"flex": "1", "minWidth": "340px"},
+        ))
+
+    if not charts:
+        return html.Div()
+
+    return card([
+        section(
+            "Data drift",
+            "The features arriving at the model, against the features it was "
+            "trained on. Curves lying on top of each other mean the inputs have "
+            "not changed, so any accuracy problem is coming from somewhere else.",
+        ),
+        row(charts),
+        _legend_note(),
     ])
 
 
@@ -207,16 +349,12 @@ def _feature_table(drift: dict) -> html.Div:
                 {"name": "Live mean", "id": "current"},
                 {"name": "Status", "id": "status"},
             ],
-            style_cell={
-                "fontFamily": MONO, "fontSize": "13px",
-                "padding": "10px 14px", "textAlign": "right", "border": "none",
-            },
+            style_table=TABLE_CONTAINER_STYLE,
+            style_cell={**TABLE_CELL_STYLE, "textAlign": "right"},
             style_cell_conditional=[{"if": {"column_id": "feature"}, "textAlign": "left"}],
-            style_header={
-                "backgroundColor": TEAL_LIGHT, "fontWeight": 700,
-                "color": INK, "border": "none", "fontSize": "12px",
-            },
-            style_data={"borderBottom": f"1px solid {LINE}"},
+            style_header=TABLE_HEADER_STYLE,
+            style_data=TABLE_DATA_STYLE,
+            css=TABLE_ROW_HOVER,
             style_data_conditional=[
                 {"if": {"filter_query": "{status} = 'alert'"}, "color": ALERT, "fontWeight": 600},
                 {"if": {"filter_query": "{status} = 'warn'"}, "color": WARN},

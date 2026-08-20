@@ -1,0 +1,105 @@
+/* Design polish layered on top of the inline styles in theme.py. Anything
+   that needs :hover, ::selection, keyframes or @font-face lives here because
+   inline React styles cannot express it; everything else stays in Python so
+   the two never drift apart. */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  --ink: #0E2A31;
+  --muted: #5B7076;
+  --line: #D9E2E4;
+  --panel: #FFFFFF;
+  --bg: #F4F7F8;
+  --teal: #064A56;
+  --teal-light: #E8F0F1;
+  --ok: #1F7A4D;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: var(--teal); color: #FFFFFF; }
+
+/* Scrollbars, so the tool does not carry the browser's default chunky bars. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: #C4D2D5; border-radius: 8px; border: 2px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover { background: #A9BCC0; }
+
+/* Cards lift very slightly on hover, matching the shadow already set for
+   the resting state in theme.py's SHADOW_SM. */
+.dash-card {
+  transition: box-shadow 180ms ease, border-color 180ms ease;
+}
+.dash-card:hover {
+  box-shadow: 0 2px 10px rgba(14, 42, 49, 0.06), 0 12px 28px rgba(14, 42, 49, 0.07);
+  border-color: #C7D4D6;
+}
+
+/* Tab content fades in on every switch rather than popping in place. */
+#tab-content {
+  animation: fadeUp 260ms ease both;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* The pulsing ring behind the "live" indicator in the top bar. */
+.live-dot {
+  position: relative;
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ok);
+  flex-shrink: 0;
+}
+.live-dot::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ok);
+  animation: pulse 2.2s ease-out infinite;
+}
+@keyframes pulse {
+  0% { transform: scale(0.5); opacity: 0.9; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+/* Buttons get a small lift on hover and a pressed state on click. */
+button {
+  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+}
+button:hover { filter: brightness(1.08); box-shadow: 0 4px 14px rgba(6, 74, 86, 0.28); }
+button:active { transform: translateY(1px); }
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Table rows highlight on hover; the rule is also injected per-table via
+   the `css` prop in theme.TABLE_ROW_HOVER, this is the fallback for tables
+   that render before that prop resolves. */
+.dash-table-container .dash-spreadsheet-container table tbody tr td {
+  transition: background-color 120ms ease;
+}
+
+a { transition: opacity 120ms ease; }
+a:hover { opacity: 0.75; }
+
+/* Plotly's own modebar and loading spinner, trimmed to match the palette
+   even though the modebar is hidden on every chart here. */
+.js-plotly-plot .plotly .modebar { filter: grayscale(1) opacity(0.6); }

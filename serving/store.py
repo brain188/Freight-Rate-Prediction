@@ -11,6 +11,7 @@ Every write is wrapped and failures are logged rather than raised.
 from __future__ import annotations
 
 import os
+import time
 import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -29,6 +30,7 @@ from sqlalchemy import (
     String,
     Table,
     create_engine,
+    event,
     func,
     select,
 )
@@ -36,7 +38,7 @@ from sqlalchemy import (
     Date as SADate,
 )
 from sqlalchemy.engine import Engine
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from src.logger import get_logger
 
@@ -44,6 +46,15 @@ logger = get_logger(__name__)
 
 # Falls back to a local SQLite file so the API runs with no database to set up.
 DEFAULT_DATABASE_URL = "sqlite:///./freight_monitoring.db"
+
+# SQLite allows one writer at a time. With the API logging predictions and the
+# dashboard polling every few seconds, a writer will regularly find the file
+# busy, so it needs to wait rather than fail on the spot.
+SQLITE_BUSY_TIMEOUT_MS = 15_000
+
+# How many times a blocked write is retried before it is given up on.
+WRITE_ATTEMPTS = 3
+RETRY_BACKOFF_SECONDS = 0.35
 
 metadata = MetaData()
 
@@ -85,6 +96,31 @@ actuals = Table(
 
 class StoreUnavailableError(RuntimeError):
     """Raised when a read needs the database and it cannot be reached."""
+
+
+def _configure_sqlite(engine: Engine) -> None:
+    """Set SQLite up to tolerate a reader and a writer at the same time.
+
+    Write ahead logging is the important one. Without it a single read blocks
+    every write, which is exactly what happens when a dashboard polls the same
+    file the API is logging to.
+
+    Args:
+        engine: The engine to configure.
+    """
+
+    @event.listens_for(engine, "connect")
+    def apply_pragmas(connection, _record):
+        cursor = connection.cursor()
+        try:
+            # Readers stop blocking writers, and writers stop blocking readers.
+            cursor.execute("PRAGMA journal_mode=WAL")
+            # Wait for a busy lock rather than failing immediately.
+            cursor.execute(f"PRAGMA busy_timeout={SQLITE_BUSY_TIMEOUT_MS}")
+            # Durable enough for monitoring data, and much faster under load.
+            cursor.execute("PRAGMA synchronous=NORMAL")
+        finally:
+            cursor.close()
 
 
 @dataclass
@@ -161,12 +197,32 @@ class PredictionStore:
             The engine.
         """
         if self._engine is None:
-            # pool_pre_ping costs one round trip and saves the stale connection
-            # errors that appear when the database restarts under a live API.
-            self._engine = create_engine(
-                self.url, echo=self._echo, pool_pre_ping=True, future=True
-            )
+            options: dict[str, Any] = {
+                "echo": self._echo,
+                "pool_pre_ping": True,
+                "future": True,
+            }
+
+            if self.is_sqlite:
+                # Background tasks run on a different thread from the request
+                # that queued them, and the timeout makes a blocked write wait
+                # for the lock instead of failing straight away.
+                options["connect_args"] = {
+                    "check_same_thread": False,
+                    "timeout": SQLITE_BUSY_TIMEOUT_MS / 1000,
+                }
+
+            self._engine = create_engine(self.url, **options)
+
+            if self.is_sqlite:
+                _configure_sqlite(self._engine)
+
         return self._engine
+
+    @property
+    def is_sqlite(self) -> bool:
+        """Whether this store is backed by SQLite."""
+        return self.url.startswith("sqlite")
 
     def connect(self) -> bool:
         """Create the tables and confirm the database is reachable.
@@ -209,6 +265,40 @@ class PredictionStore:
             return f"{scheme}://***@{rest.split('@', 1)[1]}"
         return self.url
 
+    def _with_retry(self, operation, description: str):
+        """Run a write, retrying while the database is busy.
+
+        A lock under concurrent access is temporary, so backing off and trying
+        again turns a hard failure into a short wait.
+
+        Args:
+            operation: A callable taking an open connection.
+            description: Used in the log message if every attempt fails.
+
+        Returns:
+            Whatever the operation returned.
+
+        Raises:
+            StoreUnavailableError: If every attempt failed.
+        """
+        last: Exception | None = None
+
+        for attempt in range(WRITE_ATTEMPTS):
+            try:
+                with self.engine.begin() as connection:
+                    return operation(connection)
+            except OperationalError as exc:
+                last = exc
+                if "locked" not in str(exc).lower() and "busy" not in str(exc).lower():
+                    break
+                time.sleep(RETRY_BACKOFF_SECONDS * (attempt + 1))
+                logger.debug("%s blocked, retry %s", description, attempt + 1)
+            except SQLAlchemyError as exc:
+                last = exc
+                break
+
+        raise StoreUnavailableError(f"{description} failed: {last}")
+
     @contextmanager
     def _connection(self) -> Iterator[Any]:
         """Yield a connection inside a transaction.
@@ -240,11 +330,13 @@ class PredictionStore:
         if not records or not self._available:
             return 0
 
+        rows = [record.to_row() for record in records]
+
         try:
-            with self._connection() as connection:
-                connection.execute(
-                    predictions.insert(), [record.to_row() for record in records]
-                )
+            self._with_retry(
+                lambda connection: connection.execute(predictions.insert(), rows),
+                f"logging {len(rows)} predictions",
+            )
             return len(records)
         except StoreUnavailableError as exc:
             logger.error("Could not log %s predictions: %s", len(records), exc)
@@ -275,7 +367,7 @@ class PredictionStore:
             "recorded_at": datetime.now(timezone.utc),
         }
 
-        with self._connection() as connection:
+        def write(connection) -> None:
             existing = connection.execute(
                 select(actuals.c.load_id).where(actuals.c.load_id == load_id)
             ).first()
@@ -284,10 +376,10 @@ class PredictionStore:
                 connection.execute(
                     actuals.update().where(actuals.c.load_id == load_id).values(**row)
                 )
-                logger.info("Updated actual for %s", load_id)
             else:
                 connection.execute(actuals.insert().values(**row))
 
+        self._with_retry(write, f"recording actual for {load_id}")
         return True
 
     def record_actuals(self, rows: list[tuple[str, float, str]]) -> int:
@@ -311,7 +403,7 @@ class PredictionStore:
         now = datetime.now(timezone.utc)
         incoming = {load_id: (rate, source) for load_id, rate, source in rows}
 
-        with self._connection() as connection:
+        def write(connection) -> None:
             existing = {
                 row[0]
                 for row in connection.execute(
@@ -335,6 +427,7 @@ class PredictionStore:
                     )
                 )
 
+        self._with_retry(write, f"recording {len(incoming)} actuals")
         return len(incoming)
 
     def count_predictions(self) -> int:

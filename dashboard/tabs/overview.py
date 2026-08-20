@@ -10,6 +10,7 @@ from __future__ import annotations
 import plotly.graph_objects as go
 from dash import dcc, html
 
+from dashboard.charts import error_over_time, predicted_vs_actual_series
 from dashboard.theme import (
     ALERT,
     CHART_LAYOUT,
@@ -46,7 +47,7 @@ def _accuracy_colour(mape: float) -> str:
     return ALERT
 
 
-def render(performance: dict, traffic: dict, drift: dict, daily) -> html.Div:
+def render(performance: dict, traffic: dict, drift: dict, daily, frame=None) -> html.Div:
     """Build the overview.
 
     Args:
@@ -54,6 +55,7 @@ def render(performance: dict, traffic: dict, drift: dict, daily) -> html.Div:
         traffic: Summary of recent traffic.
         drift: The drift report.
         daily: Per day metrics as a dataframe.
+        frame: Raw logged predictions, used for the live series.
 
     Returns:
         The tab content.
@@ -68,11 +70,28 @@ def render(performance: dict, traffic: dict, drift: dict, daily) -> html.Div:
     scored = performance.get("n_scored", 0)
 
     return html.Div([
-        _headline(performance, traffic, drift, metrics, scored),
+        html.Div(_headline(performance, traffic, drift, metrics, scored),
+                 id="live-headline-wrap"),
+        _live_series(frame),
         _volume_chart(daily),
         _accuracy_chart(daily),
         _signals(traffic, drift),
     ])
+
+
+def headline(performance: dict, traffic: dict, drift: dict) -> html.Div:
+    """Build just the headline numbers, for the interval callback to swap in.
+
+    Args:
+        performance: Performance snapshot.
+        traffic: Traffic summary.
+        drift: Drift report.
+
+    Returns:
+        The headline row.
+    """
+    metrics = performance.get("metrics", {})
+    return _headline(performance, traffic, drift, metrics, performance.get("n_scored", 0))
 
 
 def _headline(performance, traffic, drift, metrics, scored) -> html.Div:
@@ -122,6 +141,45 @@ def _headline(performance, traffic, drift, metrics, scored) -> html.Div:
             html.Span("Drift status  ", style={"fontSize": "12px", "color": MUTED}),
             badge(drift.get("status", "unknown")),
         ], style={"marginTop": "16px"}),
+    ], id="live-headline")
+
+
+def _live_series(frame) -> html.Div:
+    """Predicted and confirmed rates side by side, refreshed on a timer.
+
+    The actual line trails the predicted one because rates settle after they
+    are quoted. That trailing gap is the delayed feedback problem made visible
+    rather than described.
+
+    Args:
+        frame: Logged predictions with any outcomes joined.
+
+    Returns:
+        The chart panel.
+    """
+    if frame is None or frame.empty:
+        return html.Div()
+
+    return card([
+        section(
+            "Predicted against actual",
+            "Both lines are daily averages. The actual line stops short of the "
+            "predicted one because those loads have not settled yet, and the "
+            "shaded stretch is the traffic still waiting. Watch it fill in from "
+            "the left while the replay runs.",
+        ),
+        dcc.Graph(
+            id="live-predicted-actual",
+            figure=predicted_vs_actual_series(frame),
+            config={"displayModeBar": False},
+            animate=False,
+        ),
+        dcc.Graph(
+            id="live-error",
+            figure=error_over_time(frame),
+            config={"displayModeBar": False},
+            animate=False,
+        ),
     ])
 
 
@@ -158,7 +216,7 @@ def _volume_chart(daily) -> html.Div:
             "confirmed rate. Freight settles days after it is quoted, so a gap "
             "at the right hand edge is normal.",
         ),
-        dcc.Graph(figure=figure, config={"displayModeBar": False}),
+        dcc.Graph(id="live-volume", figure=figure, config={"displayModeBar": False}),
     ])
 
 
@@ -200,7 +258,7 @@ def _accuracy_chart(daily) -> html.Div:
             "error drifting above it means traffic has moved away from what "
             "the model learned.",
         ),
-        dcc.Graph(figure=figure, config={"displayModeBar": False}),
+        dcc.Graph(id="live-accuracy", figure=figure, config={"displayModeBar": False}),
     ])
 
 
