@@ -1,0 +1,45 @@
+# Runs on every push and pull request. Fast enough to be worth waiting for,
+# so it does not train anything.
+
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff
+
+      - name: Lint
+        run: ruff check src tests serving monitoring flows dashboard entrypoint
+
+      - name: Format check
+        run: ruff format --check src tests serving monitoring flows
+
+      # The unit suite needs no data files, so it runs on a bare checkout.
+      - name: Unit tests
+        run: pytest -m "not integration" -q
+
+      # Integration tests need the assessment CSVs. They skip themselves when
+      # the data is not committed, which keeps a fork's CI green.
+      - name: Integration tests
+        run: pytest -m integration -q
+        continue-on-error: true

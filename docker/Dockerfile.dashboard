@@ -1,0 +1,64 @@
+# syntax=docker/dockerfile:1
+#
+# The monitoring dashboard. Built separately from the API because the two need
+# different things: the dashboard carries the plotting and reporting stack, the
+# API carries none of it.
+
+# ---------- builder ----------
+FROM python:3.12-slim AS builder
+
+ENV PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+COPY requirements.txt ./
+RUN python -m venv /opt/venv \
+    && /opt/venv/bin/pip install --upgrade pip \
+    && /opt/venv/bin/pip install -r requirements.txt
+
+# ---------- runtime ----------
+FROM python:3.12-slim AS runtime
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/opt/venv/bin:$PATH"
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgomp1 curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --uid 1000 appuser
+
+COPY --from=builder /opt/venv /opt/venv
+
+WORKDIR /app
+
+COPY --chown=appuser:appuser src/ ./src/
+COPY --chown=appuser:appuser serving/ ./serving/
+COPY --chown=appuser:appuser monitoring/ ./monitoring/
+COPY --chown=appuser:appuser tracking/ ./tracking/
+COPY --chown=appuser:appuser dashboard/ ./dashboard/
+COPY --chown=appuser:appuser config/ ./config/
+
+RUN mkdir -p /app/logs \
+    && chown appuser:appuser /app/logs
+
+USER appuser
+
+EXPOSE 8050
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+    CMD curl -fsS http://localhost:8050/ || exit 1
+
+# One worker on purpose. The reference training data is cached in process
+# memory, so extra workers would each load their own copy of it.
+CMD ["gunicorn", "dashboard.app:server", \
+     "--bind", "0.0.0.0:8050", \
+     "--workers", "1", \
+     "--threads", "4", \
+     "--timeout", "120", \
+     "--access-logfile", "-"]

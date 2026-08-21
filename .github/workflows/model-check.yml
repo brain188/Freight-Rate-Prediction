@@ -1,0 +1,67 @@
+# Trains a model and refuses to merge if it does not clear the promotion gate.
+#
+# This is the job that makes the pipeline more than a set of scripts. A change
+# that quietly makes the model worse fails here rather than reaching production.
+
+name: model check
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "config/**"
+      - "flows/**"
+  workflow_dispatch:
+
+jobs:
+  train-and-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check the training data is present
+        id: data
+        run: |
+          if [ -f data/train_test.csv ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No training data in the repository, skipping the model check"
+          fi
+
+      # Trains into staging and compares against the committed model. A
+      # candidate that does not clear the gate exits non-zero and fails the job.
+      - name: Train and evaluate the candidate
+        if: steps.data.outputs.present == 'true'
+        run: python flows/retrain.py --dry-run
+
+      - name: Verify the submission format
+        if: steps.data.outputs.present == 'true'
+        run: |
+          python entrypoint/predict.py
+          python score.py \
+            --predictions validation_predictions.csv \
+            --december-predictions data/december_chart_inputs.csv
+
+      - name: Publish the scores
+        if: steps.data.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: training-results
+          path: |
+            models/training_results.json
+            models/metadata.json
+            scorer_results/candidate_december.png
+          retention-days: 14

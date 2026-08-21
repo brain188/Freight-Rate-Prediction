@@ -1,0 +1,68 @@
+# Builds the serving image so a broken Dockerfile is caught here rather than
+# on a deployment.
+
+name: docker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docker/**"
+      - "serving/**"
+      - "src/**"
+      - "requirements-serving.txt"
+  pull_request:
+    paths:
+      - "docker/**"
+      - "requirements-serving.txt"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: false
+          load: true
+          tags: freight-rate-api:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # A build that succeeds but will not start is still broken, so the image
+      # is run and probed before the job passes.
+      - name: Start the container
+        run: |
+          docker run -d --name api -p 8000:8000 freight-rate-api:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8000/health > /dev/null 2>&1; then
+              echo "API is up"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not become healthy"
+          docker logs api
+          exit 1
+
+      - name: Check the endpoints answer
+        run: |
+          curl -fsS http://localhost:8000/health | tee /dev/stderr | grep -q '"status"'
+          curl -fsS -X POST http://localhost:8000/predict \
+            -H 'Content-Type: application/json' \
+            -d '{"pickup":"Lexington","delivery":"Fort Wayne","distance":360,
+                 "equipment":"Dry Van","weight":32000,"date":"2025-12-15"}' \
+            | tee /dev/stderr | grep -q '"predicted_rate"'
+
+      - name: Stop
+        if: always()
+        run: docker rm -f api || true

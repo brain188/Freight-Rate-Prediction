@@ -14,6 +14,9 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from dashboard.theme import ALERT, CHART_LAYOUT, LINE, MUTED, OK, TEAL, WARN
+from src.logger import get_logger
+
+logger = get_logger(__name__)
 
 # Colours for the three series on every density plot, so the legend means the
 # same thing wherever it appears.
@@ -69,7 +72,18 @@ def _density(values: pd.Series, grid: np.ndarray) -> np.ndarray | None:
         from scipy.stats import gaussian_kde
 
         return gaussian_kde(clean.to_numpy())(grid)
-    except Exception:
+    
+    except ImportError:
+        logger.warning(
+            "SciPy is unavailable; falling back to histogram density."
+        )
+
+    except Exception as exc:
+        logger.warning(
+            "KDE density estimation failed; falling back to histogram: %s",
+            exc,
+            exc_info=True,
+        )
         # Falls back to a histogram, which is coarser but always works.
         counts, edges = np.histogram(clean, bins=40, density=True)
         centres = (edges[:-1] + edges[1:]) / 2

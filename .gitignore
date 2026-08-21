@@ -15,8 +15,12 @@ __pycache__/
 
 # Logs are regenerated on every run
 logs/
+freight_monitoring.db
 freight_monitoring.db-shm
 freight_monitoring.db-wal
+
+# MLflow
+mlflow.db
 
 # Intermediate pipeline artifacts, rebuilt by `make all`
 data/02-preprocessed/*

@@ -16,10 +16,10 @@ RUN apt-get update \
 
 WORKDIR /build
 
-COPY requirements.txt requirements-serving.txt ./
+COPY requirements.txt ./
 RUN python -m venv /opt/venv \
     && /opt/venv/bin/pip install --upgrade pip \
-    && /opt/venv/bin/pip install -r requirements-serving.txt
+    && /opt/venv/bin/pip install -r requirements.txt
 
 # ---------- runtime ----------
 FROM python:3.12-slim AS runtime
@@ -43,6 +43,9 @@ COPY --chown=appuser:appuser src/ ./src/
 COPY --chown=appuser:appuser serving/ ./serving/
 COPY --chown=appuser:appuser config/ ./config/
 COPY --chown=appuser:appuser models/ ./models/
+
+RUN mkdir -p /app/logs \
+    && chown appuser:appuser /app/logs
 
 USER appuser
 

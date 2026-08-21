@@ -9,6 +9,7 @@ have to predict.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -147,6 +148,12 @@ def run_training(config: Config) -> TrainingResult:
     with log_step(logger, "Saving the model bundle"):
         bundle.save(config.paths.model_dir)
 
+        # Written here rather than only by the CLI, because the promotion gate
+        # reads it to compare a candidate against the live model.
+        (config.paths.model_dir / "training_results.json").write_text(
+            json.dumps(result.summary(), indent=2, default=str), encoding="utf-8"
+        )
+
     # Logged after the bundle is on disk, so a tracking failure cannot lose a
     # trained model. Returns None when no tracking server is reachable.
     _log_to_mlflow(config, result)
@@ -174,7 +181,9 @@ def _log_to_mlflow(config: Config, result: TrainingResult) -> None:
         if run_id:
             result.bundle.metadata["mlflow_run_id"] = run_id
     except ImportError:
-        logger.warning("Could not log this run to MLflow", exc_info=False)
+        logger.warning("MLflow tracking is unavailable; skipping run logging.")
+    except Exception as exc:
+        logger.warning("MLflow logging failed: %s", exc, exc_info=True)
 
 
 def _score_baseline(holdout: Split, config: Config) -> Scores:
