@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pandas as pd
@@ -281,7 +281,7 @@ def update_header(_) -> html.Div:
         }),
     ], style={"fontSize": "12px", "display": "flex", "alignItems": "center"})
 
-    timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
+    timestamp = datetime.now(UTC).strftime("%H:%M:%S")
 
     return html.Div([
         live_pill, _header_divider(),
@@ -410,9 +410,9 @@ def update_live_charts(_, tab: str, days: int):
         )
     except PreventUpdate:
         raise
-    except Exception:
+    except Exception as exc:
         logger.debug("Live refresh skipped", exc_info=True)
-        raise PreventUpdate
+        raise PreventUpdate from exc
 
 
 def _live_headline_inputs(frame, days: int) -> tuple[dict, dict, dict]:

@@ -255,7 +255,7 @@ def test_concurrent_writers_and_readers_do_not_lock(tmp_path):
         for _ in range(10):
             try:
                 load_predictions(store, 90)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 failures.append(f"read: {exc}")
 
     threads = [

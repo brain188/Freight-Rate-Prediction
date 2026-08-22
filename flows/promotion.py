@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -100,7 +100,7 @@ def evaluate_candidate(
     Returns:
         The decision, with every individual check recorded.
     """
-    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    now = datetime.now(UTC).isoformat(timespec="seconds")
     candidate_rmse = float(candidate.get("rmse", float("inf")))
     candidate_mape = float(candidate.get("mape", float("inf")))
 

@@ -11,7 +11,7 @@ one computed on eighty.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import numpy as np
 import pandas as pd
@@ -74,7 +74,7 @@ def load_predictions(store: PredictionStore, days: int = 30) -> pd.DataFrame:
     Returns:
         One row per prediction, with actual_rate null where none has arrived.
     """
-    since = datetime.now(timezone.utc) - timedelta(days=days)
+    since = datetime.now(UTC) - timedelta(days=days)
 
     query = (
         select(
@@ -152,7 +152,7 @@ def snapshot(store: PredictionStore, days: int = 30) -> PerformanceSnapshot:
         The snapshot, with empty metrics when nothing can be scored yet.
     """
     frame = load_predictions(store, days)
-    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    now = datetime.now(UTC).isoformat(timespec="seconds")
 
     if frame.empty:
         return PerformanceSnapshot(

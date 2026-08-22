@@ -16,8 +16,8 @@ import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from datetime import date as Date
-from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import (
@@ -166,7 +166,7 @@ class PredictionRecord:
             "distance_out_of_range": self.distance_out_of_range,
             "weight_imputed": self.weight_imputed,
             "latency_ms": self.latency_ms,
-            "predicted_at": datetime.now(timezone.utc),
+            "predicted_at": datetime.now(UTC),
         }
 
 
@@ -366,7 +366,7 @@ class PredictionStore:
             "load_id": load_id,
             "actual_rate": actual_rate,
             "source": source,
-            "recorded_at": datetime.now(timezone.utc),
+            "recorded_at": datetime.now(UTC),
         }
 
         def write(connection) -> None:
@@ -402,7 +402,7 @@ class PredictionStore:
         if not rows:
             return 0
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         incoming = {load_id: (rate, source) for load_id, rate, source in rows}
 
         def write(connection) -> None:

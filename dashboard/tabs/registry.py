@@ -225,7 +225,7 @@ def _runs(runs: list, tracker) -> html.Div:
             "started": run.started_at,
             "status": run.status,
         }
-        for key, label, template in RUN_METRICS:
+        for key, _label, template in RUN_METRICS:
             value = run.metrics.get(key)
             entry[key] = template.format(value) if value is not None else "—"
         rows.append(entry)

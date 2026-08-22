@@ -14,7 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -144,7 +144,7 @@ def decide_action(drift: dict, performance: dict) -> dict:
     return {
         "action": action,
         "reasons": reasons,
-        "checked_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "checked_at": datetime.now(UTC).isoformat(timespec="seconds"),
     }
 
 
@@ -162,7 +162,7 @@ def write_report(config: Config, store: PredictionStore, days: int) -> str | Non
     """
     logger = get_run_logger()
 
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M")
+    stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M")
     output = config.paths.figures_dir.parent / "evidently" / f"drift-{stamp}.html"
 
     if build_evidently_report(store, config, days, output):

@@ -15,7 +15,7 @@ from __future__ import annotations
 import argparse
 import shutil
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -118,7 +118,7 @@ def promote(staging_dir: Path, production_dir: Path, archive_dir: Path) -> Path:
     archived = production_dir
 
     if production_dir.is_dir() and any(production_dir.iterdir()):
-        stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
         archived = archive_dir / f"model-{stamp}"
         archived.parent.mkdir(parents=True, exist_ok=True)
         shutil.copytree(production_dir, archived)

@@ -13,7 +13,7 @@ is available immediately rather than waiting on outcomes.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
@@ -221,7 +221,7 @@ def compute_drift(
     Returns:
         The drift report.
     """
-    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    now = datetime.now(UTC).isoformat(timespec="seconds")
     current = load_predictions(store, days)
 
     if current.empty:

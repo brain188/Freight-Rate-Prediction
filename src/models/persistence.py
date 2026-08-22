@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -164,7 +164,7 @@ def build_metadata(
         A JSON-serialisable summary.
     """
     return {
-        "trained_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "trained_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "project": config.project.name,
         "random_seed": config.project.random_seed,
         "config_file": str(config.source_file),
