@@ -11,7 +11,7 @@ DECEMBER   := data/december_chart_inputs.csv
 CHART      := scorer_results/candidate_december.png
 
 .DEFAULT_GOAL := help
-.PHONY: help setup train predict score test lint all clean clean-outputs
+.PHONY: help setup train predict score test lint format all clean clean-outputs
 
 help:  ## Show the available targets
 	@grep -E '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -66,7 +66,8 @@ schedule:  ## Register both flows on their schedules with Prefect
 	$(PYTHON) flows/deployments.py
 
 ci:  ## Everything the pipeline runs, locally
-	$(PYTHON) -m ruff check src tests serving monitoring flows
+	$(PYTHON) -m ruff check .
+	$(PYTHON) -m ruff format --check .
 	$(PYTHON) -m pytest -q
 	$(PYTHON) flows/retrain.py --dry-run
 

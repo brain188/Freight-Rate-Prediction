@@ -30,10 +30,10 @@ jobs:
           pip install ruff
 
       - name: Lint
-        run: ruff check src tests serving monitoring flows dashboard entrypoint
+        run: ruff check.
 
       - name: Format check
-        run: ruff format --check src tests serving monitoring flows
+        run: ruff format --check.
 
       # The unit suite needs no data files, so it runs on a bare checkout.
       - name: Unit tests
