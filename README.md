@@ -1,17 +1,21 @@
 # Freight Rate Prediction
 
-Predicting the dollar rate for a freight load from its lane, distance, equipment,
-weight, and date.
+A production machine learning system that prices freight loads from their lane,
+distance, trailer type, weight, and date. Freight brokers normally quote rates by
+instinct, which does not scale, varies between people, and cannot look forward.
+This replaces that judgement with a model, and wraps it in the serving,
+monitoring, and retraining infrastructure a real deployment needs.
 
-The labelled data covers **1 January to 31 October 2025**. Every load that needs a
-prediction falls in **November and December**, with no overlap in time. That makes
-this a forecasting problem rather than a gap-filling one, and it shapes almost
-every decision below.
+The problem is harder than it looks. The labelled data ends on 31 October and
+every load that needs a price falls in November or December, so every prediction
+is a forecast into months the model has never seen.
+
+---
 
 ## Results
 
-Scored on a time-based holdout. Trained on January to August, tested on
-September and October, months the model had never seen.
+Scored on a time-based holdout. Trained on January to August, tested on September
+and October, months the model never saw during training.
 
 | Model | RMSE | MAE | MAPE | R² | Bias |
 |---|---|---|---|---|---|
@@ -21,8 +25,69 @@ September and October, months the model had never seen.
 **39.9% better than the baseline.** Across three rolling-origin folds:
 RMSE 88.91 (± 42.16).
 
-The near-zero bias matters as much as the RMSE. A model predicting two months
-forward can easily drift high or low, and this one does not.
+The near-zero bias matters as much as the RMSE. A model forecasting two months
+ahead can easily drift high or low, and a consistent lean would cost money on
+every load quoted. This one is effectively unbiased.
+
+**Live behaviour.** Replaying all 12,000 held-out loads through the API, error
+holds steady at 3.35% through November then climbs to 4.61% by 31 December, as
+the model under-quotes into a peak season it was never trained on. The drift
+monitor flags 12.1% of traffic on lanes with no training history, matching the
+count of unseen cities exactly.
+
+---
+
+## Features
+
+**Modelling**
+
+- Gradient-boosted regression on `log(rate per mile)`, with a smearing correction
+  when converting back to dollars
+- Fourier seasonal terms and a fitted annual curve, so the calendar stays
+  meaningful past the end of the training data
+- Coordinate-based geography that prices cities the model has never seen
+- Time-based splitting with rolling-origin cross-validation and an automatic
+  leakage guard
+
+**Serving**
+
+- FastAPI service reusing the offline pipeline, verified to produce identical
+  predictions to the batch path
+- Single and batch endpoints, with per-prediction warnings for unfamiliar cities,
+  dates beyond training, and imputed values
+- Sub-millisecond inference at batch size 1,000
+
+**Monitoring**
+
+- Prediction logging to Postgres, joined to outcomes as they settle
+- Delayed-feedback accuracy that reports coverage alongside every metric
+- Drift detection by Population Stability Index and by Evidently
+- Live Dash dashboard with five tabs, updating without a page refresh
+
+**Operations**
+
+- MLflow experiment tracking and model registry
+- Prefect flows for scheduled monitoring and retraining
+- A promotion gate that refuses to ship a model which does not beat production
+- GitHub Actions for tests, model checks, and Docker builds
+- 91 automated tests, mutation-tested
+
+---
+
+## Tech Stack
+
+| Layer | Tools |
+|---|---|
+| Modelling | Python 3.12, LightGBM, scikit-learn, pandas, NumPy, SciPy |
+| Serving | FastAPI, Uvicorn, Pydantic |
+| Storage | PostgreSQL, SQLAlchemy Core, SQLite (local fallback) |
+| Monitoring | Evidently, Dash, Plotly |
+| Tracking | MLflow |
+| Orchestration | Prefect |
+| Infrastructure | Docker, Docker Compose, GitHub Actions |
+| Quality | pytest, ruff |
+
+---
 
 ## Architecture
 
@@ -30,202 +95,30 @@ forward can easily drift high or low, and this one does not.
 
 Training fits every transform once and persists it. Inference reloads those exact
 transforms and refits nothing. The imputation medians, city coordinates, category
-codes, and seasonal curve all come from the training run. That single rule is why
-the two pipelines are separate modules sharing one bundle rather than one pipeline
-with a flag.
+codes, and seasonal curve all come from the training run.
 
-## Quick start
+That single rule is why training and serving are separate modules sharing one
+bundle rather than one pipeline with a flag. Recomputing anything on the data
+being scored would leak information backwards and quietly break the parity
+between an offline prediction and a served one.
 
-Requires **Python 3.12** (3.11 also works).
+---
 
-```bash
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-
-python entrypoint/train.py
-python entrypoint/predict.py --score
-```
-
-Takes a few seconds(about 90 seconds) end to end. That produces everything:
-
-```
-validation_predictions.csv               the submission, 12,000 rows
-data/december_chart_inputs.csv           predicted_rate filled in place
-scorer_results/candidate_december.png    the chart for the report
-models/                                  trained model and its metadata
-```
-
-### With make
-
-```bash
-make all        # install, train, predict, score
-make help       # every target
-```
-
-`make` is not available on Windows by default. Use the two `python` commands
-above instead, they do exactly the same thing.
-
-### Running the scorer on its own
-
-The command from the assessment instructions, which works from the project root:
-
-```bash
-python score.py --predictions validation_predictions.csv --december-predictions data/december_chart_inputs.csv
-```
-
-`predict.py --score` already runs this. Use it directly to redraw the chart
-without regenerating predictions.
-
-## Approach
-
-### Data quality
-
-Five defects were found and fixed. Full working in
-`notebooks/02_data_quality.ipynb`.
-
-| Issue | Train / Validation | What it is | Treatment |
-|---|---|---|---|
-| Negative weight | 292 / 145 | A sign flip. Bounds and distribution match the valid weights exactly, to the pound | `abs()`, recovering the true value |
-| Missing weight | 300 / 165 | Missing at random | Median per equipment type |
-| Missing `market_index` | 374 / 249 | Missing at random | Median; the feature is excluded anyway |
-| Inflated rates | 340 / n/a | About 3.5× the baseline per-mile rate, up to $14.13/mile | Dropped from training only |
-| Deflated rates | 329 / n/a | About 0.28× the baseline, down to $0.33/mile | Dropped from training only |
-
-Rates are judged **per mile**, not in dollars. A $12,000 rate is normal over
-3,400 miles and absurd over 200, so raw dollars cannot separate a corrupt record
-from a long haul.
-
-Cleaning removed 669 training rows (1.39%) and left the standard deviation of
-rate per mile 53% lower with the mean and median unchanged. noise removed, not
-signal.
-
-Two rules govern the code:
-
-1. **Row removal is training-only.** Validation carries the same defects, but the
-   scorer demands a rate for all 12,000 loads, so at prediction time every defect
-   is repaired rather than dropped. This is the `is_training` flag in
-   `src/data/cleaning.py`.
-2. **Imputation values are learned on training data and reused.** Recomputing
-   them on the data being scored would leak information back into the pipeline.
-   They travel with the model as `models/cleaning_artifacts.json`.
-
-### Features
-
-24 features in five groups. `src/features/`.
-
-| Group | Features |
-|---|---|
-| Geographic | distance, log distance, four coordinates, great-circle distance, circuity, lane direction, midpoint |
-| Load | weight |
-| Categorical | pickup, delivery, equipment codes, unknown-city flag |
-| Calendar | six Fourier terms |
-| Seasonal | fitted annual curve |
-
-Three decisions worth explaining.
-
-**Coordinates are kept, and they matter.** Eight cities appear only in the
-validation set, including Chicago and Charlotte, covering **12% of the loads to
-be priced**. Encoding cities by name alone would break on all of them. Latitude
-and longitude are continuous, so an unfamiliar city still has a usable position.
-Unknown names map to a reserved code and set a flag the model can split on.
-
-**No raw month or day-of-year column reaches the model.** Training never sees
-months 11 or 12, so a tree splitting on them would reuse the October answer for
-every prediction. The calendar reaches the model only through bounded Fourier
-terms and a fitted seasonal curve, both of which are defined in December.
-
-**`market_index` and `quote_signal` are excluded.** Neither is a market-level
-indicator despite the names. Both vary hundreds of times within a single date.
-They correlate with rate per mile at 0.18 and 0.10, against distance at 0.91. And
-neither exists in `december_chart_inputs.csv`. Dropping them costs almost nothing
-and means one model serves both output files.
-
-### Validation and split
-
-Validation runs 1 November to 31 December; training ends 31 October. **Zero
-overlap.** A random split would let October teach the model about September and
-report a score that would not survive the real task.
-
-```
-Holdout:  train Jan 01 – Aug 31 (37,951)   test Sep 01 – Oct 31 (9,380)
-fold_1:   train Jan 01 – Jun 30 (28,411)   test Jul 01 – Aug 31 (9,540)
-fold_2:   train Jan 01 – Jul 31 (33,258)   test Aug 01 – Sep 30 (9,299)
-fold_3:   train Jan 01 – Aug 31 (37,951)   test Sep 01 – Oct 31 (9,380)
-```
-
-Rolling origin. Each fold trains on everything up to its cut-off and tests on the
-two months that follow, so all three rehearse the same two-month forward jump the
-real task demands. `assert_no_leakage` runs on every split and raises if any test
-date reaches back into training.
-
-`random_split` exists in `src/validation/splitters.py` but is used only for the
-comparison in the report, and logs a warning when called.
-
-Once validation is done the final model refits on all 47,331 cleaned rows,
-holding back September and October would waste the two months closest to what is
-being predicted.
-
-### Model
-
-LightGBM on `log(rate per mile)`. The raw target is right-skewed (1.90) and close
-to symmetric in logs (−0.49), so this stops long hauls dominating the error. A
-smearing factor corrects the bias introduced by exponentiating back to dollars.
-
-Feature importance on the final model:
-
-```
-great_circle    27.7%
-distance        27.4%
-equipment_code  19.5%
-log_distance     5.5%
-weight           4.4%
-seasonal_index   3.7%
-```
-
-Distance and equipment carry roughly 80% of the signal. The seasonal component is
-real but modest, which is why a fixed load's price moves only slightly across
-December.
-
-## Decisions tested rather than assumed
-
-Three choices were made by running the alternatives and comparing, not by
-argument. Each is recorded in `config/config.yaml` next to the setting it
-controls.
-
-**Seasonal curve as an offset, or as a feature?** Forcing the fitted curve through
-as an offset guarantees it comes through at full strength. It also lost on every
-fold — mean RMSE 108.02 against 88.91. The capability is still in the code
-(`model.seasonal_offset`) but is off by default.
-
-**Day-of-week features?** The weekly spread is only 2%. Removing them improved
-mean RMSE from 91.87 to 88.91 and won on two of three folds, so they are off.
-
-**How much seasonality to force?** There is a direct trade-off between the
-accuracy score and how much the December curve moves:
-
-| Configuration | Mean RMSE | Dec trend | Dec spread |
-|---|---|---|---|
-| Weekday + Fourier + curve | 91.87 | +$5.45 | $21.67 |
-| **Fourier + curve** | **88.91** | +$0.82 | $9.77 |
-| Curve only | 111.48 | −$36.87 | $36.97 |
-
-The middle row is the default, because the accuracy score is what is graded. The
-consequence is a December chart that varies by 1.23% rather than showing a
-pronounced trend, which is an honest reflection of what the data supports.
-
-## Project structure
+## Project Structure
 
 ```
 freight-rate-prediction/
 ├── config/
 │   ├── config.yaml              every setting, with the reasoning beside it
-│   └── logging.yaml             console and file logging
-├── data/
-│   ├── train-test.csv           provided — labelled development data
-│   ├── validation.csv           provided — 12,000 loads to price
-│   ├── december_chart_inputs.csv  provided — filled in place by predict.py
-│   └── 02-preprocessed/ 03-features/ 04-predictions/
+│   └── logging.yaml             console and rotating file logging
+├── data/                        the provided CSVs and pipeline artifacts
+├── db/
+│   ├── 00-databases.sql         creates the MLflow database
+│   └── 01-schema.sql            predictions, actuals, and the scored view
+├── docker/
+│   ├── Dockerfile               API image
+│   ├── Dockerfile.dashboard     dashboard image
+│   └── Dockerfile.mlflow        tracking server image
 ├── entrypoint/
 │   ├── train.py                 CLI: trains and saves the model
 │   └── predict.py               CLI: writes both output files
@@ -240,41 +133,228 @@ freight-rate-prediction/
 │   ├── models/                  baseline, estimator, persistence
 │   ├── validation/              splitters, metrics
 │   └── pipelines/               training and inference
-├── tests/                       47 tests
+├── serving/                     FastAPI app, schemas, prediction store
+├── monitoring/                  performance metrics and drift detection
+├── dashboard/                   Dash app, charts, and five tabs
+├── tracking/                    MLflow integration
+├── flows/                       Prefect flows and the promotion gate
+├── simulator/                   replays the validation set as live traffic
+├── tests/                       91 tests
+├── .github/workflows/           tests, model check, Docker build
 ├── models/                      trained bundle and metadata
 ├── reports/figures/             EDA, cleaning, and architecture figures
-├── score.py                     provided — unmodified
+├── score.py                     provided, unmodified
+├── docker-compose.yml
 ├── Makefile
-├── pytest.ini
 └── requirements.txt
 ```
 
-## Testing
+---
+
+## Installation and Setup
+
+Requires **Python 3.12** (3.11 also works). Docker is optional but recommended
+for the full stack.
 
 ```bash
-pytest                       # 47 tests
-pytest -m "not integration"  # 44 tests, no data files needed
+git clone <repository-url>
+cd freight-rate-prediction
+
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+
+pip install --upgrade pip
+pip install -r requirements.txt
 ```
 
-Four areas, each guarding a specific failure:
+Confirm the provided CSVs are in `data/`: `train_test.csv`, `validation.csv`, and
+`december_chart_inputs.csv`.
 
-- **Cleaning** : sign flips recovered, medians reused rather than refitted, and
-  no row ever dropped at prediction time
-- **Features** : unseen cities produce a code rather than a NaN, seasonal values
-  stay defined and in range for December, no month column reaches the model
-- **Splitters** : no fold leaks, and the guard rejects a random split
-- **Submission** : mirrors every rule in `score.py`
+---
 
-The suite was mutation-tested: four deliberate bugs were introduced to check the
-tests would catch them. The first attempt caught three of four, and the test that
-missed one was rewritten until it did.
+## Usage
 
-## Notes
+### Train and predict
 
-- Predictions are guaranteed strictly positive, as `score.py` requires.
-- `models/metadata.json` records what was trained, when, on which rows, and how it
-  scored, so any prediction can be traced back to the run that produced it.
-- `models/training_results.json` holds every score from the last run, so the
-  report quotes the run rather than numbers copied by hand.
-- Intermediate artifacts are gitignored; the model bundle, submission, and chart
-  are committed so a reviewer can find them without running anything.
+```bash
+python entrypoint/train.py
+python entrypoint/predict.py --score
+```
+
+About 90 seconds end to end. Produces:
+
+```
+validation_predictions.csv               the submission, 12,000 rows
+data/december_chart_inputs.csv           predicted_rate filled in place
+scorer_results/candidate_december.png    the December chart
+models/                                  trained bundle and metadata
+```
+
+### Run the full stack
+
+```bash
+docker compose up --build
+```
+
+| Service | URL |
+|---|---|
+| API | http://localhost:8000/docs |
+| Dashboard | http://localhost:8050 |
+| MLflow | http://localhost:5000 |
+| PostgreSQL | localhost:5432 |
+
+Train before building. Both the API and dashboard images read `models/`, so an
+untrained repository gives you services with nothing to serve.
+
+### Generate live traffic
+
+```bash
+export DATABASE_URL=postgresql+psycopg2://freight:freight@localhost:5432/freight_monitoring
+python simulator/replay.py --speed 200
+```
+
+Streams the 12,000 held-out loads through the API day by day, reporting synthetic
+outcomes on a delay so the feedback lag is real. Watch the dashboard while it
+runs. Options: `--scenario peak_season|shock|baseline`, `--days N`,
+`--feedback-delay N`.
+
+### Orchestration
+
+```bash
+python flows/monitor.py --days 7      # check drift and accuracy once
+python flows/retrain.py --dry-run     # train and compare without promoting
+python flows/retrain.py               # promote only if it beats production
+python flows/deployments.py           # register both flows on their schedules
+```
+
+### Make targets
+
+```bash
+make help          # every target
+make all           # install, train, predict, score
+make test          # the test suite
+make up            # build and start the full stack
+make ci            # everything the CI pipeline runs, locally
+```
+
+`make` is not available on Windows by default. The `python` commands above do
+exactly the same thing.
+
+### Tests
+
+```bash
+pytest                       # 91 tests
+pytest -m "not integration"  # the subset needing no data files
+```
+
+---
+
+## Screenshots
+
+### December prediction chart
+
+![December chart](scorer_results/candidate_december.png)
+
+Produced by the supplied scorer. One load held constant across every day of
+December, with only the date varying. All 31 days differ, confirming the seasonal
+features still work past the end of the training data.
+
+### Monitoring dashboard
+
+![Dashboard overview](reports/figures/overview1.png)
+![Model Drift tab](reports/figures/model_drift.png)
+![Data Drift tab](reports/figures/data_drift.png)
+
+The overview tracks predicted against actual rates as they settle. The drift tab
+compares live traffic against the training data, splitting production into the
+part that still resembles training and the part that does not.
+
+---
+
+## Engineering Decisions
+
+Three modelling choices were made by running the alternatives and comparing on
+the folds, not by argument. Each is recorded in `config/config.yaml` beside the
+setting it controls.
+
+**Seasonal curve as an offset, or as a feature?** Forcing the fitted curve
+through as an offset guarantees full strength. It also lost on every fold, mean
+RMSE 108.02 against 88.91. The capability remains behind
+`model.seasonal_offset`, switched off.
+
+**Day-of-week features?** The weekly spread is only 2%. Removing them improved
+mean RMSE from 91.87 to 88.91 and won on two folds of three, so they are out.
+
+**How much seasonality to force?** A direct trade-off between the accuracy score
+and how much the December curve moves:
+
+| Configuration | Mean RMSE | Dec trend | Dec spread |
+|---|---|---|---|
+| Weekday + Fourier + curve | 91.87 | +$5.45 | $21.67 |
+| **Fourier + curve** | **88.91** | +$0.82 | $9.77 |
+| Curve only | 111.48 | −$36.87 | $36.97 |
+
+The middle row is the default, because accuracy is what is scored. The
+consequence is a December chart varying by 1.23% rather than showing a pronounced
+trend, which is an honest reflection of what the data supports.
+
+Four architectural decisions shaped the rest.
+
+**Row removal is training-only.** Validation carries the same defects as
+training, but the scorer demands a rate for all 12,000 loads. Corrupted rows are
+dropped while learning and repaired while predicting. This is the `is_training`
+flag in `src/data/cleaning.py`, and it is directly tested.
+
+**Logging never breaks a prediction.** Writes go through background tasks after
+the response is sent, and a database failure returns zero rather than raising.
+Reads deliberately do the opposite and fail loudly, because a caller asking for
+metrics needs to know the answer is missing rather than receiving an empty result
+that looks like data.
+
+**No raw month or day-of-year column reaches the model.** Training never sees
+months 11 or 12, so a tree splitting on them would return the October answer for
+every prediction and flatten the December chart. The calendar arrives only
+through bounded Fourier terms and a fitted curve, both defined for any date.
+
+**A candidate model has to earn promotion.** Scheduled retraining that ships
+whatever it produced is worse than no retraining, because a bad month of data
+degrades the service silently. Every candidate is trained into a staging
+directory and must beat production by at least 1%, beat the baseline, and sit
+inside hard RMSE and MAPE ceilings before it replaces anything.
+
+---
+
+## Limitations and Future Improvements
+
+**December seasonality is the open question.** The ten months of labelled data
+contain a clear annual cycle and no holiday effects at all, tested against four
+public holidays. That cycle is projected forward on the assumption it is
+periodic, which is reasonable but unverifiable from the data given. If real
+December rates spike for peak season, these predictions run low. This is the
+largest single source of uncertainty in the system.
+
+**The model needs history.** With only six months of training data the error more
+than doubles, as the earliest cross-validation fold shows. The approach depends
+on seeing enough of the annual shape, which is an argument for retraining monthly
+rather than annually.
+
+**Unseen cities are handled but not solved.** Coordinates let the model place
+Chicago sensibly despite never having priced a load there. That is far better
+than crashing, but a load out of a major market with no history is still an
+educated guess.
+
+**Replay outcomes are synthetic.** The validation set has no rates, so the
+simulator manufactures them. This is stated wherever it surfaces, and the default
+scenario is designed to make the model look worse rather than better.
+
+**Planned next**
+
+- Quantile models to return a price range rather than a single number, since a
+  broker quoting a rate cares about the downside as much as the middle
+- Regional grouping so thin lanes have something more reliable than their own
+  twelve observations
+- A proper hyperparameter search, not yet run because the gain over sensible
+  defaults looked small next to the decisions above
+- External freight market data to anchor the seasonal projection beyond the ten
+  months available
+- Automated rollback when live metrics degrade after a promotion

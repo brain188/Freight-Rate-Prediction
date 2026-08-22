@@ -72,22 +72,22 @@ def _density(values: pd.Series, grid: np.ndarray) -> np.ndarray | None:
         from scipy.stats import gaussian_kde
 
         return gaussian_kde(clean.to_numpy())(grid)
-    
+
     except ImportError:
-        logger.warning(
-            "SciPy is unavailable; falling back to histogram density."
-        )
+        logger.warning("SciPy is unavailable; falling back to a histogram density.")
 
     except Exception as exc:
         logger.warning(
-            "KDE density estimation failed; falling back to histogram: %s",
+            "Kernel density estimation failed; falling back to a histogram: %s",
             exc,
-            exc_info=True,
         )
-        # Falls back to a histogram, which is coarser but always works.
-        counts, edges = np.histogram(clean, bins=40, density=True)
-        centres = (edges[:-1] + edges[1:]) / 2
-        return np.interp(grid, centres, counts, left=0.0, right=0.0)
+
+    # Reached by either failure above. Coarser than a kernel estimate, but it
+    # has no dependencies and cannot fail, so a curve is always drawn.
+    counts, edges = np.histogram(clean, bins=40, density=True)
+    centres = (edges[:-1] + edges[1:]) / 2
+
+    return np.interp(grid, centres, counts, left=0.0, right=0.0)
 
 
 def _shared_grid(*series: pd.Series) -> np.ndarray | None:
@@ -187,12 +187,16 @@ def density_plot(
 
 
 def _time_axis(frame: pd.DataFrame) -> tuple[pd.Series, str]:
-    """Choose which date to plot along the x axis.
+    """Choose which date gives the chart a usable x axis.
 
-    A replay compresses months of traffic into minutes of wall clock, so
-    grouping by when a prediction was made would collapse everything onto one
-    point. Grouping by the date the load moves spreads it out the way it would
-    look in production, where the two are close together anyway.
+    Two dates are available: when the API served the prediction, and when the
+    load actually moves. In production they sit close together, but a replay
+    compresses months of traffic into minutes of wall clock, so grouping by
+    the serving time squashes a whole run onto a single point.
+
+    Whichever column spreads across more days is the one worth plotting. That
+    picks the serving time in production, where it advances normally, and the
+    load date during a replay, where it is the only one that moves.
 
     Args:
         frame: Logged predictions.
@@ -202,10 +206,18 @@ def _time_axis(frame: pd.DataFrame) -> tuple[pd.Series, str]:
     """
     served = pd.to_datetime(frame["predicted_at"])
 
-    if served.dt.floor("D").nunique() > 3 or "load_date" not in frame.columns:
+    if "load_date" not in frame.columns:
         return served, "served"
 
-    return pd.to_datetime(frame["load_date"]), "load date"
+    load_date = pd.to_datetime(frame["load_date"])
+
+    served_days = served.dt.floor("D").nunique()
+    load_days = load_date.dt.floor("D").nunique()
+
+    if load_days > served_days:
+        return load_date, "load date"
+
+    return served, "served"
 
 
 def predicted_vs_actual_series(frame: pd.DataFrame, resample: str = "D") -> go.Figure:

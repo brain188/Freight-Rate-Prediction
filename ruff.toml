@@ -1,0 +1,52 @@
+# Lint and format settings.
+#
+# The rule set is chosen rather than left at the default. Turning everything on
+# produces hundreds of cosmetic findings that train people to ignore the
+# linter, so what is enabled here is what actually catches bugs in this
+# codebase. Each exclusion below says why it is off.
+
+line-length = 100
+target-version = "py312"
+
+exclude = [".venv", "notebooks", "__pycache__", "mlruns", "models_staging", "models_archive"]
+
+[lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes: unused imports, undefined names, unused variables
+    "I",     # import sorting
+    "UP",    # pyupgrade: outdated syntax
+    "B",     # bugbear: real bug patterns such as mutable default arguments
+    "C4",    # comprehension style
+    "SIM",   # simplifications
+    "PTH",   # prefer pathlib over os.path
+    "RUF",   # ruff's own rules
+]
+
+ignore = [
+    # A broad `except Exception` is deliberate at process boundaries. A
+    # monitoring or tracking failure must never take down a prediction, and a
+    # dashboard callback must not blank the page because one query failed.
+    # Every such site logs and is justified in a comment.
+    "BLE001",
+
+    # zip() without strict= is fine where the two sequences are built together
+    # a few lines earlier and cannot differ in length.
+    "B905",
+]
+
+[lint.per-file-ignores]
+# Asserts are the point of a test.
+"tests/*" = ["S101"]
+
+# Entry points put the project root on sys.path before importing from it, so
+# those imports genuinely cannot come first.
+"entrypoint/*" = ["E402"]
+"flows/*" = ["E402"]
+"simulator/*" = ["E402"]
+"dashboard/app.py" = ["E402"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
