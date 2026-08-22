@@ -143,7 +143,9 @@ def load_train(config: Config) -> pd.DataFrame:
     target = config.project.target
 
     if df[target].isna().any():
-        raise SchemaError(f"{target} contains missing values — the target must be complete")
+        raise SchemaError(
+            f"{target} contains missing values — the target must be complete"
+        )
 
     if (df[target] <= 0).any():
         raise SchemaError(f"{target} contains non-positive values")
@@ -180,7 +182,9 @@ def load_validation(config: Config) -> pd.DataFrame:
 
     # Catch an ID mismatch now rather than after a full training run.
     if set(df["load_id"]) != config.submission.expected_ids():
-        raise SchemaError("validation load_id values do not match the scorer's expected set")
+        raise SchemaError(
+            "validation load_id values do not match the scorer's expected set"
+        )
 
     log_dataframe(logger, df, "validation")
     logger.info(
@@ -213,7 +217,9 @@ def load_december(config: Config) -> pd.DataFrame:
 
     expected_days = pd.date_range("2025-12-01", "2025-12-31", freq="D")
     if set(df["date"]) != set(expected_days):
-        raise SchemaError("december_chart_inputs.csv must cover every day of December 2025")
+        raise SchemaError(
+            "december_chart_inputs.csv must cover every day of December 2025"
+        )
 
     log_dataframe(logger, df, "december_chart_inputs")
     return df
@@ -234,10 +240,12 @@ def load_submission_template(config: Config) -> pd.DataFrame:
     if not path.is_file():
         logger.warning("Template not found at %s — building IDs from config", path)
         ids = sorted(config.submission.expected_ids())
-        return pd.DataFrame({
-            config.submission.id_column: pd.Series(ids, dtype="string"),
-            config.submission.prediction_column: pd.Series(dtype="float64"),
-        })
+        return pd.DataFrame(
+            {
+                config.submission.id_column: pd.Series(ids, dtype="string"),
+                config.submission.prediction_column: pd.Series(dtype="float64"),
+            }
+        )
 
     df = pd.read_csv(path, dtype=DTYPES)
     _check_columns(df, "template", path)

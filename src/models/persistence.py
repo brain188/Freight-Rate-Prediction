@@ -209,10 +209,12 @@ def save_predictions(
     """
     settings = config.submission
 
-    frame = pd.DataFrame({
-        settings.id_column: load_ids.to_numpy(),
-        settings.prediction_column: predictions.to_numpy(),
-    })
+    frame = pd.DataFrame(
+        {
+            settings.id_column: load_ids.to_numpy(),
+            settings.prediction_column: predictions.to_numpy(),
+        }
+    )
 
     if len(frame) != settings.expected_rows:
         raise PersistenceError(
@@ -223,7 +225,9 @@ def save_predictions(
         raise PersistenceError("submission contains duplicate load_id values")
 
     if set(frame[settings.id_column]) != settings.expected_ids():
-        raise PersistenceError("submission load_id values do not match the scorer's set")
+        raise PersistenceError(
+            "submission load_id values do not match the scorer's set"
+        )
 
     if frame[settings.prediction_column].isna().any():
         raise PersistenceError("submission contains missing predictions")

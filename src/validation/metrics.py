@@ -286,15 +286,19 @@ def evaluate_by_segment(
         raise MetricError(f"unknown metric '{metric}'")
 
     rows = []
-    frame = pd.DataFrame({"group": groups.to_numpy(), "actual": actual, "predicted": predicted})
+    frame = pd.DataFrame(
+        {"group": groups.to_numpy(), "actual": actual, "predicted": predicted}
+    )
 
     for name, chunk in frame.groupby("group", observed=True):
-        rows.append({
-            "group": name,
-            "n": len(chunk),
-            "mean_actual": round(chunk["actual"].mean(), 2),
-            metric: round(function(chunk["actual"], chunk["predicted"]), 4),
-        })
+        rows.append(
+            {
+                "group": name,
+                "n": len(chunk),
+                "mean_actual": round(chunk["actual"].mean(), 2),
+                metric: round(function(chunk["actual"], chunk["predicted"]), 4),
+            }
+        )
 
     return pd.DataFrame(rows).sort_values("group").reset_index(drop=True)
 

@@ -90,7 +90,11 @@ class CleaningReport:
     def log(self) -> None:
         """Write the report to the log as one block."""
         logger.info("Cleaning report — %s", self.label)
-        logger.info("  rows in / out        : %s / %s", f"{self.rows_in:,}", f"{self.rows_out:,}")
+        logger.info(
+            "  rows in / out        : %s / %s",
+            f"{self.rows_in:,}",
+            f"{self.rows_out:,}",
+        )
         logger.info("  negative weights fixed: %s", f"{self.negative_weights_fixed:,}")
         logger.info("  weights imputed       : %s", f"{self.weights_imputed:,}")
         logger.info("  market_index imputed  : %s", f"{self.market_index_imputed:,}")
@@ -132,7 +136,9 @@ def fit_cleaning_artifacts(df: pd.DataFrame, config: Config) -> CleaningArtifact
     by_equipment = weights.groupby(df["equipment"]).median()
     overall = float(weights.median())
 
-    market_index = df["market_index"] if "market_index" in df.columns else pd.Series(dtype=float)
+    market_index = (
+        df["market_index"] if "market_index" in df.columns else pd.Series(dtype=float)
+    )
     market_median = float(market_index.median()) if market_index.notna().any() else 0.0
 
     artifacts = CleaningArtifacts(
@@ -264,7 +270,7 @@ def _drop_rate_outliers(
 
     if len(kept) < 0.5 * len(df):
         raise CleaningError(
-            f"rate filter removed {1 - len(kept)/len(df):.0%} of rows — "
+            f"rate filter removed {1 - len(kept) / len(df):.0%} of rows — "
             "check cleaning.rpm_lower and cleaning.rpm_upper"
         )
 
@@ -357,6 +363,8 @@ def _assert_clean(df: pd.DataFrame, config: Config, is_training: bool) -> None:
 
     if is_training:
         rate_per_mile = df[config.project.target] / df["distance"]
-        outside = ~rate_per_mile.between(config.cleaning.rpm_lower, config.cleaning.rpm_upper)
+        outside = ~rate_per_mile.between(
+            config.cleaning.rpm_lower, config.cleaning.rpm_upper
+        )
         if outside.any():
             raise CleaningError(f"{outside.sum()} corrupted rates survived filtering")

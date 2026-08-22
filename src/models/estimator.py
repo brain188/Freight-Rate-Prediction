@@ -229,7 +229,8 @@ class FreightRateModel:
 
         # Held out of the trees so the offset is not counted twice.
         self.tree_features = [
-            name for name in self.feature_names
+            name
+            for name in self.feature_names
             if not (self.use_seasonal_offset and name == SEASONAL_COLUMN)
         ]
 
@@ -243,17 +244,20 @@ class FreightRateModel:
         eval_set = None
 
         if X_valid is not None and y_valid is not None:
-            valid_target = (
-                self.transform.forward(y_valid, X_valid[DISTANCE_COLUMN])
-                - self._offset(X_valid)
-            )
+            valid_target = self.transform.forward(
+                y_valid, X_valid[DISTANCE_COLUMN]
+            ) - self._offset(X_valid)
             eval_set = [(X_valid[self.tree_features], valid_target)]
             callbacks = [
-                lgb.early_stopping(self.config.model.early_stopping_rounds, verbose=False),
+                lgb.early_stopping(
+                    self.config.model.early_stopping_rounds, verbose=False
+                ),
                 lgb.log_evaluation(period=0),
             ]
 
-        self.model.fit(X[self.tree_features], y_transformed, eval_set=eval_set, callbacks=callbacks)
+        self.model.fit(
+            X[self.tree_features], y_transformed, eval_set=eval_set, callbacks=callbacks
+        )
         self.best_iteration = getattr(self.model, "best_iteration_", None)
 
         # Fitted after training because it depends on the model's own residuals.

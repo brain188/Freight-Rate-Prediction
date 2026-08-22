@@ -148,21 +148,23 @@ def to_frame(loads: list[LoadRequest]) -> pd.DataFrame:
     Returns:
         One row per load, with dates parsed.
     """
-    frame = pd.DataFrame([
-        {
-            "pickup": load.pickup,
-            "delivery": load.delivery,
-            "distance": float(load.distance),
-            "equipment": load.equipment,
-            "weight": load.weight,
-            "date": pd.Timestamp(load.date),
-            "pickup_lat": load.pickup_lat,
-            "pickup_lon": load.pickup_lon,
-            "delivery_lat": load.delivery_lat,
-            "delivery_lon": load.delivery_lon,
-        }
-        for load in loads
-    ])
+    frame = pd.DataFrame(
+        [
+            {
+                "pickup": load.pickup,
+                "delivery": load.delivery,
+                "distance": float(load.distance),
+                "equipment": load.equipment,
+                "weight": load.weight,
+                "date": pd.Timestamp(load.date),
+                "pickup_lat": load.pickup_lat,
+                "pickup_lon": load.pickup_lon,
+                "delivery_lat": load.delivery_lat,
+                "delivery_lon": load.delivery_lon,
+            }
+            for load in loads
+        ]
+    )
 
     # A batch where every weight is missing arrives as object dtype, which the
     # model rejects. Coercing keeps it numeric so imputation can do its job.

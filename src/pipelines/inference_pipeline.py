@@ -54,25 +54,29 @@ class InferenceResult:
         Returns:
             One row per output file.
         """
-        return pd.DataFrame([
-            {
-                "file": self.submission_path.name,
-                "n": len(self.validation_predictions),
-                "min": round(float(self.validation_predictions.min()), 2),
-                "mean": round(float(self.validation_predictions.mean()), 2),
-                "max": round(float(self.validation_predictions.max()), 2),
-            },
-            {
-                "file": self.december_path.name,
-                "n": len(self.december_predictions),
-                "min": round(float(self.december_predictions.min()), 2),
-                "mean": round(float(self.december_predictions.mean()), 2),
-                "max": round(float(self.december_predictions.max()), 2),
-            },
-        ])
+        return pd.DataFrame(
+            [
+                {
+                    "file": self.submission_path.name,
+                    "n": len(self.validation_predictions),
+                    "min": round(float(self.validation_predictions.min()), 2),
+                    "mean": round(float(self.validation_predictions.mean()), 2),
+                    "max": round(float(self.validation_predictions.max()), 2),
+                },
+                {
+                    "file": self.december_path.name,
+                    "n": len(self.december_predictions),
+                    "min": round(float(self.december_predictions.min()), 2),
+                    "mean": round(float(self.december_predictions.mean()), 2),
+                    "max": round(float(self.december_predictions.max()), 2),
+                },
+            ]
+        )
 
 
-def _predict(df: pd.DataFrame, bundle: ModelBundle, config: Config, label: str) -> np.ndarray:
+def _predict(
+    df: pd.DataFrame, bundle: ModelBundle, config: Config, label: str
+) -> np.ndarray:
     """Clean, build features, and predict for one set of loads.
 
     Args:
@@ -106,7 +110,9 @@ def _predict(df: pd.DataFrame, bundle: ModelBundle, config: Config, label: str) 
     return bundle.model.predict(features)
 
 
-def predict_validation(bundle: ModelBundle, config: Config) -> tuple[pd.Series, np.ndarray]:
+def predict_validation(
+    bundle: ModelBundle, config: Config
+) -> tuple[pd.Series, np.ndarray]:
     """Score the 12,000 loads that need final predictions.
 
     Args:

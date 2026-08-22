@@ -239,7 +239,9 @@ class FeatureBuilder:
             "calendar": time_feature_names(self.config),
             "seasonal": [SEASONAL_FEATURE],
         }
-        return pd.DataFrame([
-            {"group": name, "n": len(cols), "features": ", ".join(cols)}
-            for name, cols in groups.items()
-        ])
+        return pd.DataFrame(
+            [
+                {"group": name, "n": len(cols), "features": ", ".join(cols)}
+                for name, cols in groups.items()
+            ]
+        )

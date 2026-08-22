@@ -342,7 +342,9 @@ class PredictionStore:
             logger.error("Could not log %s predictions: %s", len(records), exc)
             return 0
 
-    def record_actual(self, load_id: str, actual_rate: float, source: str = "api") -> bool:
+    def record_actual(
+        self, load_id: str, actual_rate: float, source: str = "api"
+    ) -> bool:
         """Store the rate a load actually went for.
 
         Upserts, because a corrected figure should replace an earlier one
@@ -412,7 +414,12 @@ class PredictionStore:
             }
 
             fresh = [
-                {"load_id": lid, "actual_rate": rate, "source": source, "recorded_at": now}
+                {
+                    "load_id": lid,
+                    "actual_rate": rate,
+                    "source": source,
+                    "recorded_at": now,
+                }
                 for lid, (rate, source) in incoming.items()
                 if lid not in existing
             ]
@@ -422,9 +429,9 @@ class PredictionStore:
             for lid in existing:
                 rate, source = incoming[lid]
                 connection.execute(
-                    actuals.update().where(actuals.c.load_id == lid).values(
-                        actual_rate=rate, source=source, recorded_at=now
-                    )
+                    actuals.update()
+                    .where(actuals.c.load_id == lid)
+                    .values(actual_rate=rate, source=source, recorded_at=now)
                 )
 
         self._with_retry(write, f"recording {len(incoming)} actuals")
@@ -441,7 +448,9 @@ class PredictionStore:
         """
         with self._connection() as connection:
             return int(
-                connection.execute(select(func.count()).select_from(predictions)).scalar_one()
+                connection.execute(
+                    select(func.count()).select_from(predictions)
+                ).scalar_one()
             )
 
     def count_actuals(self) -> int:
@@ -455,7 +464,9 @@ class PredictionStore:
         """
         with self._connection() as connection:
             return int(
-                connection.execute(select(func.count()).select_from(actuals)).scalar_one()
+                connection.execute(
+                    select(func.count()).select_from(actuals)
+                ).scalar_one()
             )
 
 

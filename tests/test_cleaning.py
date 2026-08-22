@@ -68,7 +68,9 @@ def test_corrupt_rates_dropped_during_training(dirty_loads, config):
     assert report.rows_dropped == expected
 
     rate_per_mile = cleaned["posted_rate"] / cleaned["distance"]
-    assert rate_per_mile.between(config.cleaning.rpm_lower, config.cleaning.rpm_upper).all()
+    assert rate_per_mile.between(
+        config.cleaning.rpm_lower, config.cleaning.rpm_upper
+    ).all()
 
 
 def test_no_rows_dropped_at_prediction_time(unlabelled_loads, clean_loads, config):
@@ -115,7 +117,9 @@ def test_missing_artifacts_file_is_reported(tmp_path):
         CleaningArtifacts.from_json(tmp_path / "nothing.json")
 
 
-def test_training_artifacts_are_reused_not_refitted(clean_loads, unlabelled_loads, config):
+def test_training_artifacts_are_reused_not_refitted(
+    clean_loads, unlabelled_loads, config
+):
     """Prediction imputes with the training medians, not its own."""
     artifacts = fit_cleaning_artifacts(clean_loads, config)
 
@@ -150,7 +154,9 @@ def test_cleaning_does_not_mutate_the_input(dirty_loads, config):
     pd.testing.assert_frame_equal(dirty_loads, before)
 
 
-def test_rows_survive_even_if_a_target_column_is_present(unlabelled_loads, clean_loads, config):
+def test_rows_survive_even_if_a_target_column_is_present(
+    unlabelled_loads, clean_loads, config
+):
     """Row removal stays off at prediction time whatever columns are present.
 
     Without this, a filter written to key off the target column rather than the

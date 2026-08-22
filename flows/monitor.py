@@ -113,7 +113,11 @@ def decide_action(drift: dict, performance: dict) -> dict:
     scored = performance.get("n_scored", 0)
     mape = performance.get("metrics", {}).get("mape")
 
-    if mape is not None and scored >= MIN_SCORED_FOR_ACTION and mape > HOLDOUT_MAPE * MAPE_DEGRADATION_FACTOR:
+    if (
+        mape is not None
+        and scored >= MIN_SCORED_FOR_ACTION
+        and mape > HOLDOUT_MAPE * MAPE_DEGRADATION_FACTOR
+    ):
         reasons.append(
             f"live MAPE {mape:.2f}% is more than {MAPE_DEGRADATION_FACTOR:g} times "
             f"the {HOLDOUT_MAPE}% measured during validation"
@@ -202,7 +206,9 @@ def monitor_flow(
     traffic = traffic_summary(store, days)
 
     if not traffic.get("n_predictions"):
-        logger.warning("No traffic in the last %s days, so there is nothing to check", days)
+        logger.warning(
+            "No traffic in the last %s days, so there is nothing to check", days
+        )
         return {"action": "none", "reasons": ["no traffic"], "n_predictions": 0}
 
     drift = check_drift(config, store, days)
@@ -241,8 +247,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Check drift and live accuracy.")
     parser.add_argument("--config", default=None)
     parser.add_argument("--days", type=int, default=7)
-    parser.add_argument("--report", action="store_true",
-                        help="also build the full Evidently report")
+    parser.add_argument(
+        "--report", action="store_true", help="also build the full Evidently report"
+    )
     args = parser.parse_args()
 
     result = monitor_flow(args.config, days=args.days, report=args.report)

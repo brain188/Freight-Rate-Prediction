@@ -47,7 +47,7 @@ class LoadRequest(BaseModel):
         default=None,
         max_length=64,
         description="Your identifier for this load. Supply it to record the "
-                    "actual rate later and have the prediction scored.",
+        "actual rate later and have the prediction scored.",
     )
     pickup: str = Field(min_length=1, description="Origin city")
     delivery: str = Field(min_length=1, description="Destination city")
@@ -172,7 +172,9 @@ class ActualRequest(BaseModel):
     """The rate a load actually went for."""
 
     load_id: str = Field(min_length=1, max_length=64)
-    actual_rate: float = Field(gt=0, le=1_000_000, description="Confirmed rate in dollars")
+    actual_rate: float = Field(
+        gt=0, le=1_000_000, description="Confirmed rate in dollars"
+    )
     source: str = Field(default="api", max_length=32)
 
 

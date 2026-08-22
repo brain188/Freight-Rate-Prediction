@@ -95,7 +95,9 @@ def _fit_and_score(split: Split, config: Config) -> Scores:
     model = FreightRateModel(config).fit(X_train, split.train[config.project.target])
     predictions = model.predict(X_test)
 
-    return evaluate(split.test[config.project.target].to_numpy(), predictions, split.name)
+    return evaluate(
+        split.test[config.project.target].to_numpy(), predictions, split.name
+    )
 
 
 def run_training(config: Config) -> TrainingResult:
@@ -132,7 +134,9 @@ def run_training(config: Config) -> TrainingResult:
     with log_step(logger, "Scoring the model on the holdout"):
         holdout_scores = _fit_and_score(holdout, config)
 
-    bundle = _fit_final_model(cleaned, artifacts, config, baseline_scores, holdout_scores)
+    bundle = _fit_final_model(
+        cleaned, artifacts, config, baseline_scores, holdout_scores
+    )
 
     result = TrainingResult(
         bundle=bundle,

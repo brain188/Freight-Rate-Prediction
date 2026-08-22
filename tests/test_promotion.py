@@ -51,7 +51,9 @@ def test_identical_model_is_rejected():
 def test_marginal_improvement_is_rejected():
     """An improvement inside the noise of the folds is not acted on."""
     marginal = PRODUCTION["rmse"] * (1 - (MIN_IMPROVEMENT_PCT / 2) / 100)
-    decision = evaluate_candidate({"rmse": marginal, "mape": 1.87}, BASELINE, PRODUCTION)
+    decision = evaluate_candidate(
+        {"rmse": marginal, "mape": 1.87}, BASELINE, PRODUCTION
+    )
 
     assert decision.promote is False
 

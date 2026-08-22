@@ -57,28 +57,31 @@ def make_loads(n: int = 400, seed: int = 0, with_target: bool = True) -> pd.Data
     names = list(CITIES)
 
     pickup = rng.choice(names, n)
-    delivery = np.array([
-        rng.choice([c for c in names if c != origin]) for origin in pickup
-    ])
+    delivery = np.array(
+        [rng.choice([c for c in names if c != origin]) for origin in pickup]
+    )
 
     distance = rng.uniform(100, 2000, n).round(1)
     equipment = rng.choice(["Dry Van", "Reefer", "Flatbed"], n)
 
-    frame = pd.DataFrame({
-        "load_id": [f"TE-{i:06d}" for i in range(1, n + 1)],
-        "pickup": pickup,
-        "delivery": delivery,
-        "pickup_lat": [CITIES[c][0] for c in pickup],
-        "pickup_lon": [CITIES[c][1] for c in pickup],
-        "delivery_lat": [CITIES[c][0] for c in delivery],
-        "delivery_lon": [CITIES[c][1] for c in delivery],
-        "distance": distance,
-        "equipment": equipment,
-        "weight": rng.uniform(5_000, 45_000, n).round(0),
-        "date": pd.to_datetime("2025-01-01") + pd.to_timedelta(rng.integers(0, 300, n), "D"),
-        "market_index": rng.normal(100, 10, n).round(2),
-        "quote_signal": rng.normal(0, 1, n).round(3),
-    })
+    frame = pd.DataFrame(
+        {
+            "load_id": [f"TE-{i:06d}" for i in range(1, n + 1)],
+            "pickup": pickup,
+            "delivery": delivery,
+            "pickup_lat": [CITIES[c][0] for c in pickup],
+            "pickup_lon": [CITIES[c][1] for c in pickup],
+            "delivery_lat": [CITIES[c][0] for c in delivery],
+            "delivery_lon": [CITIES[c][1] for c in delivery],
+            "distance": distance,
+            "equipment": equipment,
+            "weight": rng.uniform(5_000, 45_000, n).round(0),
+            "date": pd.to_datetime("2025-01-01")
+            + pd.to_timedelta(rng.integers(0, 300, n), "D"),
+            "market_index": rng.normal(100, 10, n).round(2),
+            "quote_signal": rng.normal(0, 1, n).round(3),
+        }
+    )
 
     if with_target:
         # Roughly $2.15 a mile with a little noise, so rate per mile lands

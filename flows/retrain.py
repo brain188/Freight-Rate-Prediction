@@ -222,10 +222,12 @@ def main() -> int:
     """
     parser = argparse.ArgumentParser(description="Retrain and conditionally promote.")
     parser.add_argument("--config", default=None)
-    parser.add_argument("--force", action="store_true",
-                        help="promote even if the gate would reject")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="train and compare without promoting")
+    parser.add_argument(
+        "--force", action="store_true", help="promote even if the gate would reject"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="train and compare without promoting"
+    )
     args = parser.parse_args()
 
     result = retrain_flow(args.config, force=args.force, dry_run=args.dry_run)

@@ -156,24 +156,35 @@ def test_unknown_city_without_coordinates_is_refused(client):
 
 def test_unknown_city_with_coordinates_is_served(client):
     """Supplying coordinates lets an unfamiliar city be priced."""
-    body = client.post("/predict", json={
-        **KNOWN_LOAD, "pickup": "Chicago", "pickup_lat": 41.88, "pickup_lon": -87.63,
-    }).json()
+    body = client.post(
+        "/predict",
+        json={
+            **KNOWN_LOAD,
+            "pickup": "Chicago",
+            "pickup_lat": 41.88,
+            "pickup_lon": -87.63,
+        },
+    ).json()
 
     assert body["predicted_rate"] > 0
     assert body["warnings"]["unknown_city"] is True
 
 
-@pytest.mark.parametrize("payload,reason", [
-    ({"equipment": "Tanker"}, "trailer type not in the training data"),
-    ({"distance": 0}, "distance must be positive"),
-    ({"distance": -100}, "distance must be positive"),
-    ({"weight": 500_000}, "weight is implausible"),
-    ({"date": "not-a-date"}, "unparseable date"),
-])
+@pytest.mark.parametrize(
+    "payload,reason",
+    [
+        ({"equipment": "Tanker"}, "trailer type not in the training data"),
+        ({"distance": 0}, "distance must be positive"),
+        ({"distance": -100}, "distance must be positive"),
+        ({"weight": 500_000}, "weight is implausible"),
+        ({"date": "not-a-date"}, "unparseable date"),
+    ],
+)
 def test_bad_input_is_rejected(client, payload, reason):
     """Malformed requests fail validation rather than reaching the model."""
-    assert client.post("/predict", json={**KNOWN_LOAD, **payload}).status_code == 422, reason
+    assert client.post("/predict", json={**KNOWN_LOAD, **payload}).status_code == 422, (
+        reason
+    )
 
 
 def test_missing_field_is_rejected(client):
@@ -190,9 +201,10 @@ def test_empty_batch_is_rejected(client):
 
 def test_oversized_batch_is_rejected(client):
     """Batches are capped so one request cannot tie up the process."""
-    assert client.post(
-        "/predict/batch", json={"loads": [KNOWN_LOAD] * 1001}
-    ).status_code == 422
+    assert (
+        client.post("/predict/batch", json={"loads": [KNOWN_LOAD] * 1001}).status_code
+        == 422
+    )
 
 
 def test_latency_header_is_present(client):

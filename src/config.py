@@ -309,8 +309,7 @@ class SubmissionConfig:
             IDs from TE-000001 through TE-012000.
         """
         return {
-            f"{self.id_prefix}{index:06d}"
-            for index in range(1, self.expected_rows + 1)
+            f"{self.id_prefix}{index:06d}" for index in range(1, self.expected_rows + 1)
         }
 
 

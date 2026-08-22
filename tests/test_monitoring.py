@@ -163,18 +163,16 @@ def test_unknown_city_rate_tracks_traffic(store):
     Available without waiting for outcomes, which is what makes it the first
     place to look when traffic changes.
     """
-    store.log_predictions([
-        make_record(i, unknown_city=i < 25) for i in range(100)
-    ])
+    store.log_predictions([make_record(i, unknown_city=i < 25) for i in range(100)])
 
     assert traffic_summary(store)["unknown_city_rate"] == pytest.approx(0.25)
 
 
 def test_segments_split_the_traffic(store):
     """Grouping covers every row without inventing any."""
-    store.log_predictions([
-        make_record(i, equipment="Dry Van" if i % 2 else "Reefer") for i in range(60)
-    ])
+    store.log_predictions(
+        [make_record(i, equipment="Dry Van" if i % 2 else "Reefer") for i in range(60)]
+    )
 
     table = segment_metrics(store, "equipment")
 
@@ -257,7 +255,7 @@ def test_concurrent_writers_and_readers_do_not_lock(tmp_path):
         for _ in range(10):
             try:
                 load_predictions(store, 90)
-            except Exception as exc: # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001
                 failures.append(f"read: {exc}")
 
     threads = [
