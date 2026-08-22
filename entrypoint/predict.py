@@ -18,7 +18,6 @@ import sys
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 
 # Lets the script run from the project root without installing the package.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))

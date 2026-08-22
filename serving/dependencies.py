@@ -21,7 +21,6 @@ from serving.schemas import (
 )
 from src.config import Config, load_config
 from src.data.cleaning import clean
-from src.features.build import FeatureBuilder
 from src.logger import get_logger
 from src.models.persistence import ModelBundle, PersistenceError
 

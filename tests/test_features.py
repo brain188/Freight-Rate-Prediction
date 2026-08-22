@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.data.cleaning import clean, fit_cleaning_artifacts
+from src.data.cleaning import clean
 from src.features.build import FeatureBuilder, FeatureError
 from src.features.encoders import OrdinalEncoder
 from src.features.geo import CityCoordinates, GeoError, attach_coordinates

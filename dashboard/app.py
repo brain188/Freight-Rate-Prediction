@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
-from dash import Dash, Input, Output, State, dcc, html, no_update
+from dash import Dash, Input, Output, State, dcc, html
 from dash.exceptions import PreventUpdate
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -95,8 +95,11 @@ def reference_frame() -> pd.DataFrame | None:
             from monitoring.drift import reference_data
 
             _reference = reference_data(config)
-        except Exception:
-            logger.warning("Could not load the training data for drift comparison")
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:
+            logger.warning(
+                "Could not load the training data for drift comparison: %s",
+                exc,
+            )
             _reference = pd.DataFrame()
 
     return _reference if not _reference.empty else None

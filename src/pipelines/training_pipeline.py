@@ -108,7 +108,6 @@ def run_training(config: Config) -> TrainingResult:
         The trained bundle and every score produced along the way.
     """
     log_config(logger, config)
-    target = config.project.target
 
     with log_step(logger, "Loading training data"):
         raw = load_train(config)

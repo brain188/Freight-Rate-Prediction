@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-from dashboard.theme import ALERT, CHART_LAYOUT, LINE, MUTED, OK, TEAL, WARN
+from dashboard.theme import ALERT, CHART_LAYOUT, MUTED, TEAL, WARN
 from src.logger import get_logger
 
 logger = get_logger(__name__)

@@ -151,6 +151,16 @@ class FreightRateModel:
         self.tree_features: list[str] = []
         self.best_iteration: int | None = None
 
+    def __getstate__(self) -> dict:
+        """Return a platform-independent state for serialization."""
+        state = self.__dict__.copy()
+        state["config"] = None
+        return state
+
+    def __setstate__(self, state: dict) -> None:
+        """Restore a serialized model."""
+        self.__dict__.update(state)
+
     @property
     def is_fitted(self) -> bool:
         """Whether the model is ready to predict."""

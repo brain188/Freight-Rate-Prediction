@@ -7,7 +7,6 @@ type becomes visible instead of being averaged away.
 
 from __future__ import annotations
 
-import pandas as pd
 import plotly.graph_objects as go
 from dash import dash_table, dcc, html
 

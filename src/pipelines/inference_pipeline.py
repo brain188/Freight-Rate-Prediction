@@ -87,7 +87,7 @@ def _predict(df: pd.DataFrame, bundle: ModelBundle, config: Config, label: str) 
     Raises:
         InferenceError: If cleaning changed the number of rows.
     """
-    cleaned, _, report = clean(
+    cleaned, _, _ = clean(
         df,
         config,
         is_training=False,
