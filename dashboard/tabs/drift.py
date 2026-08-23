@@ -58,19 +58,23 @@ def render(drift: dict, daily_unknown=None, production=None, reference=None) -> 
         The tab content.
     """
     if not drift.get("n_current"):
-        return card(empty_state(
-            "No traffic to compare against the training data.",
-            "python simulator/replay.py --speed 200",
-        ))
+        return card(
+            empty_state(
+                "No traffic to compare against the training data.",
+                "python simulator/replay.py --speed 200",
+            )
+        )
 
-    return html.Div([
-        _summary(drift),
-        _model_drift(production, reference),
-        _data_drift(production, reference),
-        _unknown_cities(drift, daily_unknown),
-        _feature_table(drift),
-        _evidently_panel(),
-    ])
+    return html.Div(
+        [
+            _summary(drift),
+            _model_drift(production, reference),
+            _data_drift(production, reference),
+            _unknown_cities(drift, daily_unknown),
+            _feature_table(drift),
+            _evidently_panel(),
+        ]
+    )
 
 
 def _summary(drift: dict) -> html.Div:
@@ -84,41 +88,46 @@ def _summary(drift: dict) -> html.Div:
     """
     unknown = drift.get("unknown_city_rate", 0)
     unknown_colour = (
-        ALERT if unknown >= UNKNOWN_CITY_ALERT
-        else WARN if unknown >= UNKNOWN_CITY_WARN
-        else OK
+        ALERT if unknown >= UNKNOWN_CITY_ALERT else WARN if unknown >= UNKNOWN_CITY_WARN else OK
     )
 
-    return card([
-        html.Div([
-            html.Span("Drift status  ", style={"fontSize": "13px", "color": MUTED}),
-            badge(drift.get("status", "unknown")),
-        ], style={"marginBottom": "18px"}),
-        row([
-            metric(
-                "Unknown cities",
-                f"{unknown:.1%}",
-                "traffic with no training history",
-                unknown_colour,
+    return card(
+        [
+            html.Div(
+                [
+                    html.Span("Drift status  ", style={"fontSize": "13px", "color": MUTED}),
+                    badge(drift.get("status", "unknown")),
+                ],
+                style={"marginBottom": "18px"},
             ),
-            metric(
-                "Beyond training dates",
-                f"{drift.get('date_beyond_training_rate', 0):.0%}",
-                "loads dated after 31 October",
+            row(
+                [
+                    metric(
+                        "Unknown cities",
+                        f"{unknown:.1%}",
+                        "traffic with no training history",
+                        unknown_colour,
+                    ),
+                    metric(
+                        "Beyond training dates",
+                        f"{drift.get('date_beyond_training_rate', 0):.0%}",
+                        "loads dated after 31 October",
+                    ),
+                    metric(
+                        "Features drifted",
+                        str(len(drift.get("drifted_features", []))),
+                        "of those compared",
+                        ALERT if drift.get("drifted_features") else OK,
+                    ),
+                    metric(
+                        "Sample",
+                        f"{drift['n_current']:,}",
+                        f"against {drift['n_reference']:,} training rows",
+                    ),
+                ]
             ),
-            metric(
-                "Features drifted",
-                str(len(drift.get("drifted_features", []))),
-                "of those compared",
-                ALERT if drift.get("drifted_features") else OK,
-            ),
-            metric(
-                "Sample",
-                f"{drift['n_current']:,}",
-                f"against {drift['n_reference']:,} training rows",
-            ),
-        ]),
-    ])
+        ]
+    )
 
 
 def _legend_note() -> html.Div:
@@ -133,13 +142,19 @@ def _legend_note() -> html.Div:
         (LEGEND_DRIFT, "live traffic involving a city with no training history"),
     ]
 
-    return html.Div([
-        html.Div([
-            html.Span(f"{label}: ", style={"fontWeight": 700, "color": INK}),
-            html.Span(meaning, style={"color": MUTED}),
-        ], style={"marginBottom": "5px"})
-        for label, meaning in items
-    ], style={"fontSize": "12px", "lineHeight": "1.5", "marginTop": "12px"})
+    return html.Div(
+        [
+            html.Div(
+                [
+                    html.Span(f"{label}: ", style={"fontWeight": 700, "color": INK}),
+                    html.Span(meaning, style={"color": MUTED}),
+                ],
+                style={"marginBottom": "5px"},
+            )
+            for label, meaning in items
+        ],
+        style={"fontSize": "12px", "lineHeight": "1.5", "marginTop": "12px"},
+    )
 
 
 def _model_drift(production, reference) -> html.Div:
@@ -161,38 +176,48 @@ def _model_drift(production, reference) -> html.Div:
     reference_rate = reference["posted_rate"]
     reference_rpm = reference["posted_rate"] / reference["distance"]
 
-    return card([
-        section(
-            "Model drift",
-            "What the model is predicting, against what it was trained on. If the "
-            "production curves sit away from the training curve, the model is "
-            "quoting into territory it did not learn from. Rate per mile is the "
-            "more revealing of the two, because it removes the effect of distance.",
-        ),
-        row([
-            html.Div(
-                dcc.Graph(
-                    figure=density_plot(
-                        reference_rate, ok_rate, drift_rate,
-                        "Predicted rate", "rate ($)",
-                    ),
-                    config={"displayModeBar": False},
-                ),
-                style={"flex": "1", "minWidth": "340px"},
+    return card(
+        [
+            section(
+                "Model drift",
+                "What the model is predicting, against what it was trained on. If the "
+                "production curves sit away from the training curve, the model is "
+                "quoting into territory it did not learn from. Rate per mile is the "
+                "more revealing of the two, because it removes the effect of distance.",
             ),
-            html.Div(
-                dcc.Graph(
-                    figure=density_plot(
-                        reference_rpm, ok_rpm, drift_rpm,
-                        "Rate per mile", "$ per mile",
+            row(
+                [
+                    html.Div(
+                        dcc.Graph(
+                            figure=density_plot(
+                                reference_rate,
+                                ok_rate,
+                                drift_rate,
+                                "Predicted rate",
+                                "rate ($)",
+                            ),
+                            config={"displayModeBar": False},
+                        ),
+                        style={"flex": "1", "minWidth": "340px"},
                     ),
-                    config={"displayModeBar": False},
-                ),
-                style={"flex": "1", "minWidth": "340px"},
+                    html.Div(
+                        dcc.Graph(
+                            figure=density_plot(
+                                reference_rpm,
+                                ok_rpm,
+                                drift_rpm,
+                                "Rate per mile",
+                                "$ per mile",
+                            ),
+                            config={"displayModeBar": False},
+                        ),
+                        style={"flex": "1", "minWidth": "340px"},
+                    ),
+                ]
             ),
-        ]),
-        _legend_note(),
-    ])
+            _legend_note(),
+        ]
+    )
 
 
 def _data_drift(production, reference) -> html.Div:
@@ -220,33 +245,37 @@ def _data_drift(production, reference) -> html.Div:
         ok_values, drift_values = split_production(production, column)
 
         # Weights are sign flipped in this data, so compare magnitudes.
-        charts.append(html.Div(
-            dcc.Graph(
-                figure=density_plot(
-                    reference[column].abs(),
-                    ok_values.abs(),
-                    drift_values.abs(),
-                    title,
-                    label,
+        charts.append(
+            html.Div(
+                dcc.Graph(
+                    figure=density_plot(
+                        reference[column].abs(),
+                        ok_values.abs(),
+                        drift_values.abs(),
+                        title,
+                        label,
+                    ),
+                    config={"displayModeBar": False},
                 ),
-                config={"displayModeBar": False},
-            ),
-            style={"flex": "1", "minWidth": "340px"},
-        ))
+                style={"flex": "1", "minWidth": "340px"},
+            )
+        )
 
     if not charts:
         return html.Div()
 
-    return card([
-        section(
-            "Data drift",
-            "The features arriving at the model, against the features it was "
-            "trained on. Curves lying on top of each other mean the inputs have "
-            "not changed, so any accuracy problem is coming from somewhere else.",
-        ),
-        row(charts),
-        _legend_note(),
-    ])
+    return card(
+        [
+            section(
+                "Data drift",
+                "The features arriving at the model, against the features it was "
+                "trained on. Curves lying on top of each other mean the inputs have "
+                "not changed, so any accuracy problem is coming from somewhere else.",
+            ),
+            row(charts),
+            _legend_note(),
+        ]
+    )
 
 
 def _unknown_cities(drift: dict, daily_unknown) -> html.Div:
@@ -275,36 +304,52 @@ def _unknown_cities(drift: dict, daily_unknown) -> html.Div:
     if daily_unknown is not None and not daily_unknown.empty:
         figure = go.Figure()
         figure.add_scatter(
-            x=daily_unknown["day"], y=daily_unknown["unknown_city_rate"] * 100,
-            mode="lines+markers", line={"color": TEAL, "width": 2.5},
-            marker={"size": 5}, name="unknown city rate",
+            x=daily_unknown["day"],
+            y=daily_unknown["unknown_city_rate"] * 100,
+            mode="lines+markers",
+            line={"color": TEAL, "width": 2.5},
+            marker={"size": 5},
+            name="unknown city rate",
         )
         figure.add_hline(
-            y=UNKNOWN_CITY_WARN * 100, line_dash="dot", line_color=WARN,
-            annotation_text="watch", annotation_position="right",
+            y=UNKNOWN_CITY_WARN * 100,
+            line_dash="dot",
+            line_color=WARN,
+            annotation_text="watch",
+            annotation_position="right",
         )
         figure.add_hline(
-            y=UNKNOWN_CITY_ALERT * 100, line_dash="dot", line_color=ALERT,
-            annotation_text="act", annotation_position="right",
+            y=UNKNOWN_CITY_ALERT * 100,
+            line_dash="dot",
+            line_color=ALERT,
+            annotation_text="act",
+            annotation_position="right",
         )
         figure.update_layout(
-            **CHART_LAYOUT, height=290,
+            **CHART_LAYOUT,
+            height=290,
             title="Share of traffic on unfamiliar lanes",
             yaxis_title="%",
         )
         children.append(dcc.Graph(figure=figure, config={"displayModeBar": False}))
 
     if rate > 0:
-        children.append(html.Div(
-            f"At {rate:.1%}, roughly one load in "
-            f"{max(round(1 / rate), 1)} involves a city absent from the training "
-            "data. Adding those markets to the next training set is the fix.",
-            style={
-                "fontSize": "13px", "color": INK, "background": TEAL_LIGHT,
-                "padding": "13px 16px", "borderRadius": "7px", "marginTop": "12px",
-                "lineHeight": "1.55",
-            },
-        ))
+        children.append(
+            html.Div(
+                f"At {rate:.1%}, roughly one load in "
+                f"{max(round(1 / rate), 1)} involves a city absent from the training "
+                "data. Adding those markets to the next training set is the fix.",
+                style={
+                    "fontSize": "13px",
+                    "color": INK,
+                    "background": TEAL_LIGHT,
+                    "padding": "13px 16px",
+                    "borderRadius": "7px",
+                    "marginTop": "12px",
+                    "lineHeight": "1.55",
+                },
+            )
+        )
 
     return card(children)
 
@@ -323,44 +368,53 @@ def _feature_table(drift: dict) -> html.Div:
     if not features:
         return html.Div()
 
-    rows = [{
-        "feature": f["feature"],
-        "psi": f"{f['psi']:.4f}",
-        "reference": f"{f['reference_mean']:,.0f}" if f.get("reference_mean") else "—",
-        "current": f"{f['current_mean']:,.0f}" if f.get("current_mean") else "—",
-        "status": f["status"],
-    } for f in features]
+    rows = [
+        {
+            "feature": f["feature"],
+            "psi": f"{f['psi']:.4f}",
+            "reference": f"{f['reference_mean']:,.0f}" if f.get("reference_mean") else "—",
+            "current": f"{f['current_mean']:,.0f}" if f.get("current_mean") else "—",
+            "status": f["status"],
+        }
+        for f in features
+    ]
 
-    return card([
-        section(
-            "Feature distributions",
-            f"Population Stability Index compares live traffic against the training "
-            f"data. Below {PSI_WARN} is stable, above {PSI_ALERT} is a real shift. "
-            "PSI is used rather than a statistical test because it does not grow "
-            "with sample size, so it does not call every tiny difference significant "
-            "once the traffic gets large.",
-        ),
-        dash_table.DataTable(
-            data=rows,
-            columns=[
-                {"name": "Feature", "id": "feature"},
-                {"name": "PSI", "id": "psi"},
-                {"name": "Training mean", "id": "reference"},
-                {"name": "Live mean", "id": "current"},
-                {"name": "Status", "id": "status"},
-            ],
-            style_table=TABLE_CONTAINER_STYLE,
-            style_cell={**TABLE_CELL_STYLE, "textAlign": "right"},
-            style_cell_conditional=[{"if": {"column_id": "feature"}, "textAlign": "left"}],
-            style_header=TABLE_HEADER_STYLE,
-            style_data=TABLE_DATA_STYLE,
-            css=TABLE_ROW_HOVER,
-            style_data_conditional=[
-                {"if": {"filter_query": "{status} = 'alert'"}, "color": ALERT, "fontWeight": 600},
-                {"if": {"filter_query": "{status} = 'warn'"}, "color": WARN},
-            ],
-        ),
-    ])
+    return card(
+        [
+            section(
+                "Feature distributions",
+                f"Population Stability Index compares live traffic against the training "
+                f"data. Below {PSI_WARN} is stable, above {PSI_ALERT} is a real shift. "
+                "PSI is used rather than a statistical test because it does not grow "
+                "with sample size, so it does not call every tiny difference significant "
+                "once the traffic gets large.",
+            ),
+            dash_table.DataTable(
+                data=rows,
+                columns=[
+                    {"name": "Feature", "id": "feature"},
+                    {"name": "PSI", "id": "psi"},
+                    {"name": "Training mean", "id": "reference"},
+                    {"name": "Live mean", "id": "current"},
+                    {"name": "Status", "id": "status"},
+                ],
+                style_table=TABLE_CONTAINER_STYLE,
+                style_cell={**TABLE_CELL_STYLE, "textAlign": "right"},
+                style_cell_conditional=[{"if": {"column_id": "feature"}, "textAlign": "left"}],
+                style_header=TABLE_HEADER_STYLE,
+                style_data=TABLE_DATA_STYLE,
+                css=TABLE_ROW_HOVER,
+                style_data_conditional=[
+                    {
+                        "if": {"filter_query": "{status} = 'alert'"},
+                        "color": ALERT,
+                        "fontWeight": 600,
+                    },
+                    {"if": {"filter_query": "{status} = 'warn'"}, "color": WARN},
+                ],
+            ),
+        ]
+    )
 
 
 def _evidently_panel() -> html.Div:
@@ -372,26 +426,33 @@ def _evidently_panel() -> html.Div:
     Returns:
         The panel.
     """
-    return card([
-        section(
-            "Full Evidently report",
-            "The summary above is computed on every refresh. This builds the "
-            "complete Evidently data drift report, with per feature distribution "
-            "comparisons and statistical tests. It takes a few seconds.",
-        ),
-        html.Button(
-            "Build the Evidently report",
-            id="build-evidently",
-            n_clicks=0,
-            style={
-                "background": TEAL, "color": "#FFFFFF", "border": "none",
-                "padding": "10px 20px", "borderRadius": "7px", "fontSize": "13px",
-                "fontWeight": 600, "cursor": "pointer",
-            },
-        ),
-        dcc.Loading(
-            html.Div(id="evidently-output", style={"marginTop": "18px"}),
-            type="dot",
-            color=TEAL,
-        ),
-    ])
+    return card(
+        [
+            section(
+                "Full Evidently report",
+                "The summary above is computed on every refresh. This builds the "
+                "complete Evidently data drift report, with per feature distribution "
+                "comparisons and statistical tests. It takes a few seconds.",
+            ),
+            html.Button(
+                "Build the Evidently report",
+                id="build-evidently",
+                n_clicks=0,
+                style={
+                    "background": TEAL,
+                    "color": "#FFFFFF",
+                    "border": "none",
+                    "padding": "10px 20px",
+                    "borderRadius": "7px",
+                    "fontSize": "13px",
+                    "fontWeight": 600,
+                    "cursor": "pointer",
+                },
+            ),
+            dcc.Loading(
+                html.Div(id="evidently-output", style={"marginTop": "18px"}),
+                type="dot",
+                color=TEAL,
+            ),
+        ]
+    )

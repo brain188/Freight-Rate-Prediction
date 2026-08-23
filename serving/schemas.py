@@ -172,9 +172,7 @@ class ActualRequest(BaseModel):
     """The rate a load actually went for."""
 
     load_id: str = Field(min_length=1, max_length=64)
-    actual_rate: float = Field(
-        gt=0, le=1_000_000, description="Confirmed rate in dollars"
-    )
+    actual_rate: float = Field(gt=0, le=1_000_000, description="Confirmed rate in dollars")
     source: str = Field(default="api", max_length=32)
 
 

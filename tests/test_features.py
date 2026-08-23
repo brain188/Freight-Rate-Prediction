@@ -23,9 +23,7 @@ DECEMBER = pd.date_range("2025-12-01", "2025-12-31", freq="D")
 
 def test_unseen_city_gets_a_code_not_a_crash(clean_loads, config):
     """An unfamiliar city encodes to the reserved value instead of NaN."""
-    encoder = OrdinalEncoder.fit(
-        clean_loads, unknown_value=config.features.unknown_category_value
-    )
+    encoder = OrdinalEncoder.fit(clean_loads, unknown_value=config.features.unknown_category_value)
 
     unfamiliar = clean_loads.head(5).copy()
     unfamiliar["pickup"] = "Chicago"
@@ -39,9 +37,7 @@ def test_unseen_city_gets_a_code_not_a_crash(clean_loads, config):
 
 def test_known_cities_are_not_flagged(clean_loads, config):
     """Familiar cities leave the unknown flag clear."""
-    encoder = OrdinalEncoder.fit(
-        clean_loads, unknown_value=config.features.unknown_category_value
-    )
+    encoder = OrdinalEncoder.fit(clean_loads, unknown_value=config.features.unknown_category_value)
 
     encoded = encoder.transform(clean_loads)
 
@@ -65,9 +61,7 @@ def test_coordinates_are_attached_from_city_names(clean_loads):
     """
     lookup = CityCoordinates.fit(clean_loads)
 
-    thin = clean_loads[
-        ["pickup", "delivery", "distance", "equipment", "weight", "date"]
-    ].head(10)
+    thin = clean_loads[["pickup", "delivery", "distance", "equipment", "weight", "date"]].head(10)
     filled = attach_coordinates(thin, lookup)
 
     for column in ["pickup_lat", "pickup_lon", "delivery_lat", "delivery_lon"]:
@@ -163,9 +157,7 @@ def _cleaned_pair(clean_loads, unlabelled_loads, config):
         The cleaned training and prediction frames.
     """
     train, artifacts, _ = clean(clean_loads, config, is_training=True)
-    predict, _, _ = clean(
-        unlabelled_loads, config, is_training=False, artifacts=artifacts
-    )
+    predict, _, _ = clean(unlabelled_loads, config, is_training=False, artifacts=artifacts)
     return train, predict
 
 

@@ -104,6 +104,7 @@ def reference_frame() -> pd.DataFrame | None:
 
     return _reference if not _reference.empty else None
 
+
 app = Dash(__name__, title="Freight Rate Monitoring", suppress_callback_exceptions=True)
 server = app.server
 
@@ -114,33 +115,60 @@ def header() -> html.Div:
     Returns:
         The header.
     """
-    return html.Div([
-        html.Div([
-            html.Div("F", style={
-                "width": "34px", "height": "34px", "borderRadius": "9px",
-                "background": TEAL, "color": "#FFFFFF", "display": "flex",
-                "alignItems": "center", "justifyContent": "center",
-                "fontSize": "15px", "fontWeight": 800, "fontFamily": MONO,
-                "marginRight": "13px", "flexShrink": 0,
-                "boxShadow": "0 2px 6px rgba(6, 74, 86, 0.32)",
-            }),
-            html.Div([
-                html.Div("Freight Rate Monitoring", style={
-                    "fontSize": "16.5px", "fontWeight": 700, "color": INK,
-                    "letterSpacing": "-0.01em",
-                }),
-                html.Div(
-                    "Live model performance, drift and training history",
-                    style={"fontSize": "12px", "color": MUTED, "marginTop": "2px"},
-                ),
-            ]),
-        ], style={"display": "flex", "alignItems": "center"}),
-        html.Div(id="header-status", style={"textAlign": "right"}),
-    ], style={
-        "display": "flex", "justifyContent": "space-between", "alignItems": "center",
-        "padding": "15px 26px", "background": PANEL,
-        "borderBottom": f"1px solid {LINE}",
-    })
+    return html.Div(
+        [
+            html.Div(
+                [
+                    html.Div(
+                        "F",
+                        style={
+                            "width": "34px",
+                            "height": "34px",
+                            "borderRadius": "9px",
+                            "background": TEAL,
+                            "color": "#FFFFFF",
+                            "display": "flex",
+                            "alignItems": "center",
+                            "justifyContent": "center",
+                            "fontSize": "15px",
+                            "fontWeight": 800,
+                            "fontFamily": MONO,
+                            "marginRight": "13px",
+                            "flexShrink": 0,
+                            "boxShadow": "0 2px 6px rgba(6, 74, 86, 0.32)",
+                        },
+                    ),
+                    html.Div(
+                        [
+                            html.Div(
+                                "Freight Rate Monitoring",
+                                style={
+                                    "fontSize": "16.5px",
+                                    "fontWeight": 700,
+                                    "color": INK,
+                                    "letterSpacing": "-0.01em",
+                                },
+                            ),
+                            html.Div(
+                                "Live model performance, drift and training history",
+                                style={"fontSize": "12px", "color": MUTED, "marginTop": "2px"},
+                            ),
+                        ]
+                    ),
+                ],
+                style={"display": "flex", "alignItems": "center"},
+            ),
+            html.Div(id="header-status", style={"textAlign": "right"}),
+        ],
+        style={
+            "display": "flex",
+            "justifyContent": "space-between",
+            "alignItems": "center",
+            "padding": "15px 26px",
+            "background": PANEL,
+            "borderBottom": f"1px solid {LINE}",
+        },
+    )
 
 
 def _header_divider() -> html.Div:
@@ -149,9 +177,14 @@ def _header_divider() -> html.Div:
     Returns:
         The divider.
     """
-    return html.Div(style={
-        "width": "1px", "height": "14px", "background": LINE, "margin": "0 16px",
-    })
+    return html.Div(
+        style={
+            "width": "1px",
+            "height": "14px",
+            "background": LINE,
+            "margin": "0 16px",
+        }
+    )
 
 
 def _header_stat(label: str, value: str) -> html.Div:
@@ -164,10 +197,13 @@ def _header_stat(label: str, value: str) -> html.Div:
     Returns:
         The stat block.
     """
-    return html.Div([
-        html.Span(label, style={"color": MUTED, "marginRight": "6px"}),
-        html.Span(value, style={"color": INK, "fontFamily": MONO, "fontWeight": 600}),
-    ], style={"fontSize": "12px", "display": "flex", "alignItems": "center"})
+    return html.Div(
+        [
+            html.Span(label, style={"color": MUTED, "marginRight": "6px"}),
+            html.Span(value, style={"color": INK, "fontFamily": MONO, "fontWeight": 600}),
+        ],
+        style={"fontSize": "12px", "display": "flex", "alignItems": "center"},
+    )
 
 
 def _tab_style(selected: bool) -> dict:
@@ -184,9 +220,14 @@ def _tab_style(selected: bool) -> dict:
         The style dict for dcc.Tab.
     """
     base = {
-        "padding": "13px 2px", "marginRight": "30px", "border": "none",
-        "borderBottom": "2px solid transparent", "background": "transparent",
-        "fontSize": "13px", "fontWeight": 600, "color": MUTED,
+        "padding": "13px 2px",
+        "marginRight": "30px",
+        "border": "none",
+        "borderBottom": "2px solid transparent",
+        "background": "transparent",
+        "fontSize": "13px",
+        "fontWeight": 600,
+        "color": MUTED,
         "letterSpacing": "0.1px",
     }
     if selected:
@@ -194,36 +235,44 @@ def _tab_style(selected: bool) -> dict:
     return base
 
 
-app.layout = html.Div([
-    dcc.Interval(id="refresh", interval=DEFAULT_REFRESH * 1000, n_intervals=0),
-    dcc.Interval(id="slow-refresh", interval=STRUCTURE_REFRESH * 1000, n_intervals=0),
-    dcc.Store(id="window-days", data=DEFAULT_WINDOW),
-    header(),
-    html.Div(
-        dcc.Tabs(
-            id="tabs",
-            value="overview",
-            children=[
-                dcc.Tab(
-                    label=label, value=value,
-                    style=_tab_style(False), selected_style=_tab_style(True),
-                )
-                for value, label in TABS
-            ],
-            style={"height": "auto"},
+app.layout = html.Div(
+    [
+        dcc.Interval(id="refresh", interval=DEFAULT_REFRESH * 1000, n_intervals=0),
+        dcc.Interval(id="slow-refresh", interval=STRUCTURE_REFRESH * 1000, n_intervals=0),
+        dcc.Store(id="window-days", data=DEFAULT_WINDOW),
+        header(),
+        html.Div(
+            dcc.Tabs(
+                id="tabs",
+                value="overview",
+                children=[
+                    dcc.Tab(
+                        label=label,
+                        value=value,
+                        style=_tab_style(False),
+                        selected_style=_tab_style(True),
+                    )
+                    for value, label in TABS
+                ],
+                style={"height": "auto"},
+            ),
+            style={"background": PANEL, "padding": "0 26px", "borderBottom": f"1px solid {LINE}"},
         ),
-        style={"background": PANEL, "padding": "0 26px", "borderBottom": f"1px solid {LINE}"},
-    ),
-    dcc.Loading(
-        html.Div(id="tab-content", style={"padding": "22px 26px", "maxWidth": "1400px"}),
-        type="dot",
-        color=TEAL,
-        delay_show=400,
-        delay_hide=200,
-    ),
-], style={
-    "fontFamily": FONT, "background": BACKGROUND, "minHeight": "100vh", "color": INK,
-})
+        dcc.Loading(
+            html.Div(id="tab-content", style={"padding": "22px 26px", "maxWidth": "1400px"}),
+            type="dot",
+            color=TEAL,
+            delay_show=400,
+            delay_hide=200,
+        ),
+    ],
+    style={
+        "fontFamily": FONT,
+        "background": BACKGROUND,
+        "minHeight": "100vh",
+        "color": INK,
+    },
+)
 
 
 @app.callback(
@@ -247,48 +296,88 @@ def update_header(_) -> html.Div:
         store_ok = False
 
     if store_ok:
-        live_pill = html.Div([
-            html.Span(className="live-dot"),
-            html.Span("LIVE", style={
-                "marginLeft": "8px", "fontSize": "10.5px", "fontWeight": 700,
-                "letterSpacing": "0.6px", "color": OK,
-            }),
-        ], style={
-            "display": "flex", "alignItems": "center",
-            "background": "#E7F6EC", "padding": "4px 11px 4px 9px",
-            "borderRadius": "20px",
-        })
+        live_pill = html.Div(
+            [
+                html.Span(className="live-dot"),
+                html.Span(
+                    "LIVE",
+                    style={
+                        "marginLeft": "8px",
+                        "fontSize": "10.5px",
+                        "fontWeight": 700,
+                        "letterSpacing": "0.6px",
+                        "color": OK,
+                    },
+                ),
+            ],
+            style={
+                "display": "flex",
+                "alignItems": "center",
+                "background": "#E7F6EC",
+                "padding": "4px 11px 4px 9px",
+                "borderRadius": "20px",
+            },
+        )
     else:
-        live_pill = html.Div([
-            html.Span(style={
-                "width": "7px", "height": "7px", "borderRadius": "50%",
-                "background": ALERT, "display": "inline-block",
-            }),
-            html.Span("OFFLINE", style={
-                "marginLeft": "8px", "fontSize": "10.5px", "fontWeight": 700,
-                "letterSpacing": "0.6px", "color": ALERT,
-            }),
-        ], style={
-            "display": "flex", "alignItems": "center",
-            "background": "#FBECEA", "padding": "4px 11px 4px 9px",
-            "borderRadius": "20px",
-        })
+        live_pill = html.Div(
+            [
+                html.Span(
+                    style={
+                        "width": "7px",
+                        "height": "7px",
+                        "borderRadius": "50%",
+                        "background": ALERT,
+                        "display": "inline-block",
+                    }
+                ),
+                html.Span(
+                    "OFFLINE",
+                    style={
+                        "marginLeft": "8px",
+                        "fontSize": "10.5px",
+                        "fontWeight": 700,
+                        "letterSpacing": "0.6px",
+                        "color": ALERT,
+                    },
+                ),
+            ],
+            style={
+                "display": "flex",
+                "alignItems": "center",
+                "background": "#FBECEA",
+                "padding": "4px 11px 4px 9px",
+                "borderRadius": "20px",
+            },
+        )
 
-    mlflow_dot = html.Div([
-        html.Span("MLflow", style={"color": MUTED, "marginRight": "7px"}),
-        html.Span("●", style={
-            "color": OK if tracker.is_available else UNKNOWN, "fontSize": "9px",
-        }),
-    ], style={"fontSize": "12px", "display": "flex", "alignItems": "center"})
+    mlflow_dot = html.Div(
+        [
+            html.Span("MLflow", style={"color": MUTED, "marginRight": "7px"}),
+            html.Span(
+                "●",
+                style={
+                    "color": OK if tracker.is_available else UNKNOWN,
+                    "fontSize": "9px",
+                },
+            ),
+        ],
+        style={"fontSize": "12px", "display": "flex", "alignItems": "center"},
+    )
 
     timestamp = datetime.now(UTC).strftime("%H:%M:%S")
 
-    return html.Div([
-        live_pill, _header_divider(),
-        _header_stat("predictions", count_text), _header_divider(),
-        mlflow_dot, _header_divider(),
-        _header_stat("updated", f"{timestamp} UTC"),
-    ], style={"display": "flex", "alignItems": "center"})
+    return html.Div(
+        [
+            live_pill,
+            _header_divider(),
+            _header_stat("predictions", count_text),
+            _header_divider(),
+            mlflow_dot,
+            _header_divider(),
+            _header_stat("updated", f"{timestamp} UTC"),
+        ],
+        style={"display": "flex", "alignItems": "center"},
+    )
 
 
 @app.callback(
@@ -354,10 +443,12 @@ def render_tab(tab: str, _, days: int) -> html.Div:
         return _about()
 
     except StoreUnavailableError as exc:
-        return card(empty_state(
-            "Could not reach the prediction store.",
-            f"{exc}. Check DATABASE_URL, or start the database with docker compose up.",
-        ))
+        return card(
+            empty_state(
+                "Could not reach the prediction store.",
+                f"{exc}. Check DATABASE_URL, or start the database with docker compose up.",
+            )
+        )
     except Exception as exc:
         logger.exception("Failed to render the %s tab", tab)
         return card(empty_state(f"Could not build this tab: {exc}"))
@@ -444,7 +535,7 @@ def _live_headline_inputs(frame, days: int) -> tuple[dict, dict, dict]:
         error = (scored["actual_rate"] - scored["predicted_rate"]).to_numpy()
         actual = scored["actual_rate"].to_numpy()
         performance["metrics"] = {
-            "rmse": float(np.sqrt(np.mean(error ** 2))),
+            "rmse": float(np.sqrt(np.mean(error**2))),
             "mae": float(np.mean(np.abs(error))),
             "mape": float(np.mean(np.abs(error / actual)) * 100),
             "bias": float(-np.mean(error)),
@@ -551,18 +642,29 @@ def build_evidently(clicks: int, days: int) -> html.Div:
             style={"fontSize": "13px", "color": MUTED},
         )
 
-    return html.Div([
-        html.Div(
-            f"Saved to {output}",
-            style={"fontSize": "12px", "color": MUTED, "marginBottom": "10px",
-                   "fontFamily": MONO},
-        ),
-        html.Iframe(
-            srcDoc=html_report,
-            style={"width": "100%", "height": "900px", "border": f"1px solid {LINE}",
-                   "borderRadius": "8px", "background": PANEL},
-        ),
-    ])
+    return html.Div(
+        [
+            html.Div(
+                f"Saved to {output}",
+                style={
+                    "fontSize": "12px",
+                    "color": MUTED,
+                    "marginBottom": "10px",
+                    "fontFamily": MONO,
+                },
+            ),
+            html.Iframe(
+                srcDoc=html_report,
+                style={
+                    "width": "100%",
+                    "height": "900px",
+                    "border": f"1px solid {LINE}",
+                    "borderRadius": "8px",
+                    "background": PANEL,
+                },
+            ),
+        ]
+    )
 
 
 def _about() -> html.Div:
@@ -573,59 +675,115 @@ def _about() -> html.Div:
     """
     from dashboard.theme import section
 
-    return html.Div([
-        card([
-            section("What this is"),
-            html.Div([
-                html.P(
-                    "A freight rate model in production, with the monitoring that "
-                    "goes around it. The model prices a load from its lane, "
-                    "distance, trailer type, weight and date.",
-                    style={"lineHeight": "1.65", "marginTop": 0},
-                ),
-                html.P([
-                    ("Two things about this problem make the monitoring worth "
-                    "looking at. "),
-                    html.B("Outcomes arrive late"),
-                    (": a rate is quoted now and confirmed days or weeks later, so "
-                    "accuracy can only be measured on the traffic that has come "
-                    "back. Coverage is reported next to every metric for that "
-                    "reason. "),
-                    html.B("The model cannot see the period it predicts"),
-                    (": training stops on 31 October and every load priced "
-                    "afterwards is a forecast, so drift is not hypothetical."),
-                ], style={"lineHeight": "1.65"}),
-            ], style={"fontSize": "13.5px", "color": INK}),
-        ]),
-        card([
-            section("The tabs"),
-            html.Ul([
-                html.Li([html.B("Overview"), " — volume, accuracy and drift status."]),
-                html.Li([html.B("Performance"), (" — live error against the validation "
-                         "holdout, split by trailer type and distance.")]),
-                html.Li([html.B("Drift"), (" — how far traffic has moved from the "
-                         "training data, with the full Evidently report on demand.")]),
-                html.Li([html.B("Models"), (" — the serving model, the registry and "
-                         "every training run, linking out to MLflow.")]),
-            ], style={"fontSize": "13.5px", "lineHeight": "1.9", "paddingLeft": "20px"}),
-        ]),
-        card([
-            section("Running it"),
-            html.Div([
-                "docker compose up --build", html.Br(),
-                "python simulator/replay.py --speed 200",
-            ], style={
-                "fontFamily": MONO, "fontSize": "12.5px", "background": BACKGROUND,
-                "padding": "14px 16px", "borderRadius": "7px", "lineHeight": "1.9",
-            }),
-            html.Div(
-                "The replay streams the validation set at the API day by day. "
-                "Outcomes in that replay are synthetic and labelled as such.",
-                style={"fontSize": "12.5px", "color": MUTED, "marginTop": "12px",
-                       "lineHeight": "1.6"},
+    return html.Div(
+        [
+            card(
+                [
+                    section("What this is"),
+                    html.Div(
+                        [
+                            html.P(
+                                "A freight rate model in production, with the monitoring that "
+                                "goes around it. The model prices a load from its lane, "
+                                "distance, trailer type, weight and date.",
+                                style={"lineHeight": "1.65", "marginTop": 0},
+                            ),
+                            html.P(
+                                [
+                                    (
+                                        "Two things about this problem make the monitoring worth "
+                                        "looking at. "
+                                    ),
+                                    html.B("Outcomes arrive late"),
+                                    (
+                                        ": a rate is quoted now and confirmed days or weeks later, "
+                                        "so accuracy can only be measured on the traffic that has "
+                                        "come back. Coverage is reported next to every metric "
+                                        "for that reason. "
+                                    ),
+                                    html.B("The model cannot see the period it predicts"),
+                                    (
+                                        ": training stops on 31 October and every load priced "
+                                        "afterwards is a forecast, so drift is not hypothetical."
+                                    ),
+                                ],
+                                style={"lineHeight": "1.65"},
+                            ),
+                        ],
+                        style={"fontSize": "13.5px", "color": INK},
+                    ),
+                ]
             ),
-        ]),
-    ])
+            card(
+                [
+                    section("The tabs"),
+                    html.Ul(
+                        [
+                            html.Li([html.B("Overview"), " — volume, accuracy and drift status."]),
+                            html.Li(
+                                [
+                                    html.B("Performance"),
+                                    (
+                                        " — live error against the validation "
+                                        "holdout, split by trailer type and distance."
+                                    ),
+                                ]
+                            ),
+                            html.Li(
+                                [
+                                    html.B("Drift"),
+                                    (
+                                        " — how far traffic has moved from the "
+                                        "training data, with the full Evidently report on demand."
+                                    ),
+                                ]
+                            ),
+                            html.Li(
+                                [
+                                    html.B("Models"),
+                                    (
+                                        " — the serving model, the registry and "
+                                        "every training run, linking out to MLflow."
+                                    ),
+                                ]
+                            ),
+                        ],
+                        style={"fontSize": "13.5px", "lineHeight": "1.9", "paddingLeft": "20px"},
+                    ),
+                ]
+            ),
+            card(
+                [
+                    section("Running it"),
+                    html.Div(
+                        [
+                            "docker compose up --build",
+                            html.Br(),
+                            "python simulator/replay.py --speed 200",
+                        ],
+                        style={
+                            "fontFamily": MONO,
+                            "fontSize": "12.5px",
+                            "background": BACKGROUND,
+                            "padding": "14px 16px",
+                            "borderRadius": "7px",
+                            "lineHeight": "1.9",
+                        },
+                    ),
+                    html.Div(
+                        "The replay streams the validation set at the API day by day. "
+                        "Outcomes in that replay are synthetic and labelled as such.",
+                        style={
+                            "fontSize": "12.5px",
+                            "color": MUTED,
+                            "marginTop": "12px",
+                            "lineHeight": "1.6",
+                        },
+                    ),
+                ]
+            ),
+        ]
+    )
 
 
 def main() -> int:
@@ -637,8 +795,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Freight rate monitoring dashboard.")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
-    parser.add_argument("--refresh", type=int, default=DEFAULT_REFRESH,
-                        help="seconds between refreshes")
+    parser.add_argument(
+        "--refresh", type=int, default=DEFAULT_REFRESH, help="seconds between refreshes"
+    )
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 

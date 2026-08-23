@@ -131,9 +131,7 @@ def attach_coordinates(df: pd.DataFrame, lookup: CityCoordinates) -> pd.DataFram
         for axis, table in (("lat", lookup.latitude), ("lon", lookup.longitude)):
             column = f"{role}_{axis}"
             mapped = out[role].map(table)
-            out[column] = (
-                out[column].fillna(mapped) if column in out.columns else mapped
-            )
+            out[column] = out[column].fillna(mapped) if column in out.columns else mapped
 
     unknown = out[COORDINATE_COLUMNS].isna().any(axis=1)
     if unknown.any():

@@ -309,9 +309,7 @@ async def performance(days: int = Query(default=30, ge=1, le=365)) -> dict:
     try:
         return snapshot(get_store(), days).to_dict()
     except Exception as exc:
-        raise HTTPException(
-            status_code=503, detail=f"metrics unavailable: {exc}"
-        ) from exc
+        raise HTTPException(status_code=503, detail=f"metrics unavailable: {exc}") from exc
 
 
 @app.get("/metrics/traffic", tags=["monitoring"])
@@ -335,15 +333,11 @@ async def traffic(days: int = Query(default=7, ge=1, le=365)) -> dict:
     try:
         return traffic_summary(get_store(), days)
     except Exception as exc:
-        raise HTTPException(
-            status_code=503, detail=f"metrics unavailable: {exc}"
-        ) from exc
+        raise HTTPException(status_code=503, detail=f"metrics unavailable: {exc}") from exc
 
 
 @app.post("/predict", response_model=PredictionResponse, tags=["predict"])
-async def predict_one(
-    load: LoadRequest, background: BackgroundTasks
-) -> PredictionResponse:
+async def predict_one(load: LoadRequest, background: BackgroundTasks) -> PredictionResponse:
     """Price a single load.
 
     Args:
@@ -364,9 +358,7 @@ async def predict_one(
         raise
     except Exception as exc:
         logger.exception("Prediction failed")
-        raise HTTPException(
-            status_code=500, detail=f"prediction failed: {exc}"
-        ) from exc
+        raise HTTPException(status_code=500, detail=f"prediction failed: {exc}") from exc
 
     warnings = build_warnings([load], context)[0]
     elapsed = (time.perf_counter() - started) * 1000
@@ -391,9 +383,7 @@ async def predict_one(
 
 
 @app.post("/predict/batch", response_model=BatchResponse, tags=["predict"])
-async def predict_batch(
-    request: BatchRequest, background: BackgroundTasks
-) -> BatchResponse:
+async def predict_batch(request: BatchRequest, background: BackgroundTasks) -> BatchResponse:
     """Price several loads in one call.
 
     Far cheaper per load than repeated single calls, because the feature build
@@ -417,9 +407,7 @@ async def predict_batch(
         raise
     except Exception as exc:
         logger.exception("Batch prediction failed")
-        raise HTTPException(
-            status_code=500, detail=f"prediction failed: {exc}"
-        ) from exc
+        raise HTTPException(status_code=500, detail=f"prediction failed: {exc}") from exc
 
     warnings = build_warnings(request.loads, context)
     elapsed = (time.perf_counter() - started) * 1000

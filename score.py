@@ -78,7 +78,9 @@ def validate_december(frame: pd.DataFrame) -> pd.DataFrame:
     if result["date"].duplicated().any():
         fail("December predictions contains duplicate dates")
     if len(result) != 31 or set(result["date"]) != set(DECEMBER_DATES):
-        fail("December predictions must contain one row for every day from 2025-12-01 to 2025-12-31")
+        fail(
+            "December predictions must contain one row for every day from 2025-12-01 to 2025-12-31"
+        )
     if not result["pickup"].eq(FIXED_PICKUP).all():
         fail(f"December pickup must be {FIXED_PICKUP} for all rows")
     if not result["delivery"].eq(FIXED_DELIVERY).all():
@@ -113,7 +115,13 @@ def save_december_chart(december: pd.DataFrame, output: Path) -> None:
         color=color,
         alpha=0.08,
     )
-    axis.set_title("Candidate: December 2025 Predicted Load Rate", loc="left", fontsize=15, fontweight="bold", pad=12)
+    axis.set_title(
+        "Candidate: December 2025 Predicted Load Rate",
+        loc="left",
+        fontsize=15,
+        fontweight="bold",
+        pad=12,
+    )
     axis.set_ylabel("Predicted rate ($)")
     axis.grid(axis="y", color="#D9E2E4", linewidth=0.8)
     axis.spines[["top", "right"]].set_visible(False)
@@ -122,7 +130,8 @@ def save_december_chart(december: pd.DataFrame, output: Path) -> None:
     axis.text(
         0,
         -0.40,
-        "Fixed inputs: Lexington to Fort Wayne | 360 miles | Dry Van | 32,000 lb | only date changes",
+        "Fixed inputs: Lexington to Fort Wayne | 360 miles | Dry Van | "
+        "32,000 lb | only date changes",
         transform=axis.transAxes,
         fontsize=9.5,
         color="#455A60",

@@ -45,13 +45,15 @@ CHART_LAYOUT = {
     "margin": {"l": 55, "r": 25, "t": 50, "b": 45},
     "hovermode": "x unified",
     "hoverlabel": {
-        "bgcolor": PANEL, "bordercolor": LINE,
+        "bgcolor": PANEL,
+        "bordercolor": LINE,
         "font": {"family": FONT, "size": 12, "color": INK},
     },
     "xaxis": {"gridcolor": "#EBF1F2", "zeroline": False, "linecolor": LINE},
     "yaxis": {"gridcolor": "#EBF1F2", "zeroline": False, "linecolor": LINE},
     "legend": {
-        "orientation": "h", "y": -0.2,
+        "orientation": "h",
+        "y": -0.2,
         "font": {"size": 11, "color": MUTED},
     },
     "title_font": {"size": 13.5, "color": INK, "family": FONT},
@@ -62,18 +64,28 @@ CHART_LAYOUT = {
 # Shared look for every dash_table.DataTable, so a reader learns one table
 # style once rather than re-reading it on every tab.
 TABLE_CELL_STYLE = {
-    "fontFamily": MONO, "fontSize": "12.5px", "padding": "11px 14px",
-    "border": "none", "color": INK,
+    "fontFamily": MONO,
+    "fontSize": "12.5px",
+    "padding": "11px 14px",
+    "border": "none",
+    "color": INK,
 }
 TABLE_HEADER_STYLE = {
-    "backgroundColor": BACKGROUND, "fontWeight": 700, "color": MUTED,
-    "border": "none", "fontSize": "10.5px", "textTransform": "uppercase",
-    "letterSpacing": "0.6px", "borderBottom": f"2px solid {LINE}",
+    "backgroundColor": BACKGROUND,
+    "fontWeight": 700,
+    "color": MUTED,
+    "border": "none",
+    "fontSize": "10.5px",
+    "textTransform": "uppercase",
+    "letterSpacing": "0.6px",
+    "borderBottom": f"2px solid {LINE}",
     "fontFamily": FONT,
 }
 TABLE_DATA_STYLE = {"borderBottom": f"1px solid {LINE}"}
 TABLE_CONTAINER_STYLE = {
-    "borderRadius": "10px", "overflow": "hidden", "border": f"1px solid {LINE}",
+    "borderRadius": "10px",
+    "overflow": "hidden",
+    "border": f"1px solid {LINE}",
 }
 # Row hover, scoped to whichever DataTable's `css` prop it is passed to.
 TABLE_ROW_HOVER = [
@@ -92,7 +104,7 @@ def _rgba(hex_colour: str, alpha: float) -> str:
         An rgba string.
     """
     hex_colour = hex_colour.lstrip("#")
-    r, g, b = (int(hex_colour[i:i + 2], 16) for i in (0, 2, 4))
+    r, g, b = (int(hex_colour[i : i + 2], 16) for i in (0, 2, 4))
     return f"rgba({r},{g},{b},{alpha})"
 
 
@@ -135,21 +147,42 @@ def metric(label: str, value: str, note: str = "", colour: str = INK) -> html.Di
         The metric block.
     """
     children = [
-        html.Div(label, style={
-            "fontSize": "10.5px", "color": MUTED, "textTransform": "uppercase",
-            "letterSpacing": "0.7px", "fontWeight": 700, "marginBottom": "8px",
-        }),
-        html.Div(value, style={
-            "fontSize": "30px", "fontWeight": 700, "color": colour, "lineHeight": "1.1",
-            "fontFamily": MONO, "letterSpacing": "-0.02em",
-            "fontVariantNumeric": "tabular-nums",
-        }),
+        html.Div(
+            label,
+            style={
+                "fontSize": "10.5px",
+                "color": MUTED,
+                "textTransform": "uppercase",
+                "letterSpacing": "0.7px",
+                "fontWeight": 700,
+                "marginBottom": "8px",
+            },
+        ),
+        html.Div(
+            value,
+            style={
+                "fontSize": "30px",
+                "fontWeight": 700,
+                "color": colour,
+                "lineHeight": "1.1",
+                "fontFamily": MONO,
+                "letterSpacing": "-0.02em",
+                "fontVariantNumeric": "tabular-nums",
+            },
+        ),
     ]
 
     if note:
-        children.append(html.Div(note, style={
-            "fontSize": "11.5px", "color": MUTED, "marginTop": "7px",
-        }))
+        children.append(
+            html.Div(
+                note,
+                style={
+                    "fontSize": "11.5px",
+                    "color": MUTED,
+                    "marginTop": "7px",
+                },
+            )
+        )
 
     return html.Div(children, style={"flex": "1", "minWidth": "150px"})
 
@@ -164,19 +197,33 @@ def badge(status: str) -> html.Span:
         The badge.
     """
     colour = STATUS_COLOURS.get(status, UNKNOWN)
-    return html.Span([
-        html.Span(style={
-            "display": "inline-block", "width": "6px", "height": "6px",
-            "borderRadius": "50%", "background": colour, "marginRight": "7px",
-        }),
-        html.Span(STATUS_LABELS.get(status, status)),
-    ], style={
-        "display": "inline-flex", "alignItems": "center",
-        "background": _rgba(colour, 0.11), "color": colour,
-        "border": f"1px solid {_rgba(colour, 0.28)}",
-        "padding": "4px 12px 4px 9px", "borderRadius": "20px",
-        "fontSize": "11px", "fontWeight": 700, "letterSpacing": "0.3px",
-    })
+    return html.Span(
+        [
+            html.Span(
+                style={
+                    "display": "inline-block",
+                    "width": "6px",
+                    "height": "6px",
+                    "borderRadius": "50%",
+                    "background": colour,
+                    "marginRight": "7px",
+                }
+            ),
+            html.Span(STATUS_LABELS.get(status, status)),
+        ],
+        style={
+            "display": "inline-flex",
+            "alignItems": "center",
+            "background": _rgba(colour, 0.11),
+            "color": colour,
+            "border": f"1px solid {_rgba(colour, 0.28)}",
+            "padding": "4px 12px 4px 9px",
+            "borderRadius": "20px",
+            "fontSize": "11px",
+            "fontWeight": 700,
+            "letterSpacing": "0.3px",
+        },
+    )
 
 
 def section(title: str, subtitle: str = "") -> html.Div:
@@ -189,16 +236,31 @@ def section(title: str, subtitle: str = "") -> html.Div:
     Returns:
         The heading block.
     """
-    children = [html.Div(title, style={
-        "fontSize": "15.5px", "fontWeight": 700, "color": INK,
-        "marginBottom": "4px", "letterSpacing": "-0.01em",
-    })]
+    children = [
+        html.Div(
+            title,
+            style={
+                "fontSize": "15.5px",
+                "fontWeight": 700,
+                "color": INK,
+                "marginBottom": "4px",
+                "letterSpacing": "-0.01em",
+            },
+        )
+    ]
 
     if subtitle:
-        children.append(html.Div(subtitle, style={
-            "fontSize": "12.5px", "color": MUTED, "lineHeight": "1.55",
-            "maxWidth": "760px",
-        }))
+        children.append(
+            html.Div(
+                subtitle,
+                style={
+                    "fontSize": "12.5px",
+                    "color": MUTED,
+                    "lineHeight": "1.55",
+                    "maxWidth": "760px",
+                },
+            )
+        )
 
     return html.Div(children, style={"marginBottom": "16px"})
 
@@ -219,17 +281,33 @@ def empty_state(message: str, hint: str = "") -> html.Div:
     ]
 
     if hint:
-        children.append(html.Div(hint, style={
-            "fontSize": "12px", "color": MUTED, "marginTop": "10px", "fontFamily": MONO,
-            "background": PANEL, "display": "inline-block", "padding": "6px 12px",
-            "borderRadius": "6px", "border": f"1px solid {LINE}",
-        }))
+        children.append(
+            html.Div(
+                hint,
+                style={
+                    "fontSize": "12px",
+                    "color": MUTED,
+                    "marginTop": "10px",
+                    "fontFamily": MONO,
+                    "background": PANEL,
+                    "display": "inline-block",
+                    "padding": "6px 12px",
+                    "borderRadius": "6px",
+                    "border": f"1px solid {LINE}",
+                },
+            )
+        )
 
-    return html.Div(children, style={
-        "padding": "52px 20px", "textAlign": "center",
-        "background": BACKGROUND, "borderRadius": "10px",
-        "border": f"1px dashed {LINE}",
-    })
+    return html.Div(
+        children,
+        style={
+            "padding": "52px 20px",
+            "textAlign": "center",
+            "background": BACKGROUND,
+            "borderRadius": "10px",
+            "border": f"1px dashed {LINE}",
+        },
+    )
 
 
 def row(children, gap: str = "18px") -> html.Div:
@@ -242,6 +320,12 @@ def row(children, gap: str = "18px") -> html.Div:
     Returns:
         The row.
     """
-    return html.Div(children, style={
-        "display": "flex", "gap": gap, "flexWrap": "wrap", "alignItems": "stretch",
-    })
+    return html.Div(
+        children,
+        style={
+            "display": "flex",
+            "gap": gap,
+            "flexWrap": "wrap",
+            "alignItems": "stretch",
+        },
+    )

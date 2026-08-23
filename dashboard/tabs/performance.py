@@ -45,17 +45,21 @@ def render(performance: dict, by_equipment, by_distance, daily) -> html.Div:
         The tab content.
     """
     if not performance.get("n_scored"):
-        return card(empty_state(
-            "No outcomes reported yet, so nothing can be scored.",
-            "Freight settles after it is quoted. Report actual rates to "
-            "POST /actuals, or run the replay simulator.",
-        ))
+        return card(
+            empty_state(
+                "No outcomes reported yet, so nothing can be scored.",
+                "Freight settles after it is quoted. Report actual rates to "
+                "POST /actuals, or run the replay simulator.",
+            )
+        )
 
-    return html.Div([
-        _comparison(performance),
-        _segments(by_equipment, by_distance),
-        _feedback(performance, daily),
-    ])
+    return html.Div(
+        [
+            _comparison(performance),
+            _segments(by_equipment, by_distance),
+            _feedback(performance, daily),
+        ]
+    )
 
 
 def _comparison(performance: dict) -> html.Div:
@@ -90,41 +94,48 @@ def _comparison(performance: dict) -> html.Div:
         else:
             worse = live_value > holdout_value * 1.3
 
-        rows.append({
-            "metric": name.upper(),
-            "live": live_text,
-            "holdout": holdout_text,
-            "flag": "worse" if worse else "",
-        })
+        rows.append(
+            {
+                "metric": name.upper(),
+                "live": live_text,
+                "holdout": holdout_text,
+                "flag": "worse" if worse else "",
+            }
+        )
 
-    return card([
-        section(
-            "Live against validation",
-            f"Live figures come from {performance['n_scored']:,} predictions with a "
-            f"confirmed rate, which is {performance.get('coverage', 0):.0%} of traffic "
-            f"in the window. Holdout figures are from September and October, "
-            f"months the model never trained on.",
-        ),
-        dash_table.DataTable(
-            data=rows,
-            columns=[
-                {"name": "Metric", "id": "metric"},
-                {"name": "Live traffic", "id": "live"},
-                {"name": "Validation holdout", "id": "holdout"},
-                {"name": "", "id": "flag"},
-            ],
-            style_table=TABLE_CONTAINER_STYLE,
-            style_cell={**TABLE_CELL_STYLE, "textAlign": "right"},
-            style_cell_conditional=[{"if": {"column_id": "metric"}, "textAlign": "left"}],
-            style_header=TABLE_HEADER_STYLE,
-            style_data=TABLE_DATA_STYLE,
-            css=TABLE_ROW_HOVER,
-            style_data_conditional=[{
-                "if": {"filter_query": "{flag} = 'worse'"},
-                "color": ALERT, "fontWeight": 600,
-            }],
-        ),
-    ])
+    return card(
+        [
+            section(
+                "Live against validation",
+                f"Live figures come from {performance['n_scored']:,} predictions with a "
+                f"confirmed rate, which is {performance.get('coverage', 0):.0%} of traffic "
+                f"in the window. Holdout figures are from September and October, "
+                f"months the model never trained on.",
+            ),
+            dash_table.DataTable(
+                data=rows,
+                columns=[
+                    {"name": "Metric", "id": "metric"},
+                    {"name": "Live traffic", "id": "live"},
+                    {"name": "Validation holdout", "id": "holdout"},
+                    {"name": "", "id": "flag"},
+                ],
+                style_table=TABLE_CONTAINER_STYLE,
+                style_cell={**TABLE_CELL_STYLE, "textAlign": "right"},
+                style_cell_conditional=[{"if": {"column_id": "metric"}, "textAlign": "left"}],
+                style_header=TABLE_HEADER_STYLE,
+                style_data=TABLE_DATA_STYLE,
+                css=TABLE_ROW_HOVER,
+                style_data_conditional=[
+                    {
+                        "if": {"filter_query": "{flag} = 'worse'"},
+                        "color": ALERT,
+                        "fontWeight": 600,
+                    }
+                ],
+            ),
+        ]
+    )
 
 
 def _segment_chart(frame, title: str, label: str) -> html.Div:
@@ -149,18 +160,28 @@ def _segment_chart(frame, title: str, label: str) -> html.Div:
 
     figure = go.Figure()
     figure.add_bar(
-        x=scored["group"], y=scored["mape"], marker_color=colours,
-        text=[f"{v:.2f}%" for v in scored["mape"]], textposition="outside",
+        x=scored["group"],
+        y=scored["mape"],
+        marker_color=colours,
+        text=[f"{v:.2f}%" for v in scored["mape"]],
+        textposition="outside",
         customdata=scored["n_scored"],
         hovertemplate="%{x}<br>MAPE %{y:.2f}%<br>%{customdata} scored<extra></extra>",
     )
     figure.add_hline(
-        y=HOLDOUT["mape"], line_dash="dash", line_color=MUTED,
-        annotation_text="holdout", annotation_position="right",
+        y=HOLDOUT["mape"],
+        line_dash="dash",
+        line_color=MUTED,
+        annotation_text="holdout",
+        annotation_position="right",
     )
     figure.update_layout(
-        **CHART_LAYOUT, height=300, title=title,
-        xaxis_title=label, yaxis_title="MAPE (%)", showlegend=False,
+        **CHART_LAYOUT,
+        height=300,
+        title=title,
+        xaxis_title=label,
+        yaxis_title="MAPE (%)",
+        showlegend=False,
     )
 
     return html.Div(
@@ -179,18 +200,22 @@ def _segments(by_equipment, by_distance) -> html.Div:
     Returns:
         The panel.
     """
-    return card([
-        section(
-            "Where the error sits",
-            "Short hauls were the hardest band during validation, at roughly four "
-            "times the error of the middle of the range. Bars above the dashed "
-            "line are doing worse than the model did on unseen months.",
-        ),
-        row([
-            _segment_chart(by_equipment, "By trailer type", "equipment"),
-            _segment_chart(by_distance, "By distance band", "miles"),
-        ]),
-    ])
+    return card(
+        [
+            section(
+                "Where the error sits",
+                "Short hauls were the hardest band during validation, at roughly four "
+                "times the error of the middle of the range. Bars above the dashed "
+                "line are doing worse than the model did on unseen months.",
+            ),
+            row(
+                [
+                    _segment_chart(by_equipment, "By trailer type", "equipment"),
+                    _segment_chart(by_distance, "By distance band", "miles"),
+                ]
+            ),
+        ]
+    )
 
 
 def _feedback(performance: dict, daily) -> html.Div:
@@ -212,24 +237,26 @@ def _feedback(performance: dict, daily) -> html.Div:
             "be measured on the traffic that has come back. If this delay grows, "
             "the model is being judged on increasingly stale evidence.",
         ),
-        row([
-            metric(
-                "Median delay",
-                f"{delay:.1f} days" if delay is not None else "n/a",
-                "quote to confirmation",
-            ),
-            metric(
-                "Scored",
-                f"{performance.get('n_scored', 0):,}",
-                f"of {performance.get('n_predictions', 0):,} predictions",
-            ),
-            metric(
-                "Reliable",
-                "yes" if performance.get("is_reliable") else "not yet",
-                "enough outcomes to trust the figures",
-                OK if performance.get("is_reliable") else MUTED,
-            ),
-        ]),
+        row(
+            [
+                metric(
+                    "Median delay",
+                    f"{delay:.1f} days" if delay is not None else "n/a",
+                    "quote to confirmation",
+                ),
+                metric(
+                    "Scored",
+                    f"{performance.get('n_scored', 0):,}",
+                    f"of {performance.get('n_predictions', 0):,} predictions",
+                ),
+                metric(
+                    "Reliable",
+                    "yes" if performance.get("is_reliable") else "not yet",
+                    "enough outcomes to trust the figures",
+                    OK if performance.get("is_reliable") else MUTED,
+                ),
+            ]
+        ),
     ]
 
     if daily is not None and not daily.empty:
@@ -237,11 +264,14 @@ def _feedback(performance: dict, daily) -> html.Div:
         figure.add_scatter(
             x=daily["day"],
             y=(daily["n_scored"] / daily["n_predictions"] * 100).round(1),
-            mode="lines+markers", line={"color": TEAL, "width": 2},
-            marker={"size": 4}, name="coverage",
+            mode="lines+markers",
+            line={"color": TEAL, "width": 2},
+            marker={"size": 4},
+            name="coverage",
         )
         figure.update_layout(
-            **CHART_LAYOUT, height=240,
+            **CHART_LAYOUT,
+            height=240,
             title="Share of each day's traffic that has an outcome",
             yaxis_title="coverage (%)",
         )

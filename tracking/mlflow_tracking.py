@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -137,15 +137,12 @@ class MLflowTracker:
             return True
 
         except ImportError:
-            logger.warning(
-                "MLflow is not installed; tracking will be skipped."
-            )
+            logger.warning("MLflow is not installed; tracking will be skipped.")
             return False
 
         except Exception as exc:
             logger.warning(
-                "MLflow is unavailable: %s. "
-                "Training and monitoring will continue without it.",
+                "MLflow is unavailable: %s. Training and monitoring will continue without it.",
                 exc,
             )
             return False
@@ -174,9 +171,7 @@ class MLflowTracker:
             mlflow.set_tracking_uri(self.tracking_uri)
             mlflow.set_experiment(self.experiment)
 
-            run_name = (
-                f"train-{datetime.now(timezone.utc):%Y%m%d-%H%M%S}"
-            )
+            run_name = f"train-{datetime.now(UTC):%Y%m%d-%H%M%S}"
 
             with mlflow.start_run(run_name=run_name) as run:
                 mlflow.log_params(
@@ -191,10 +186,7 @@ class MLflowTracker:
                         "train_end": str(config.split.train_end),
                         "holdout_start": str(config.split.holdout_start),
                         "random_seed": config.project.random_seed,
-                        **{
-                            f"lgbm_{key}": value
-                            for key, value in config.model.params.items()
-                        },
+                        **{f"lgbm_{key}": value for key, value in config.model.params.items()},
                     }
                 )
 
@@ -236,9 +228,7 @@ class MLflowTracker:
                 return run_id
 
         except ImportError:
-            logger.warning(
-                "MLflow is unavailable while logging the training run."
-            )
+            logger.warning("MLflow is unavailable while logging the training run.")
             return None
 
         except Exception as exc:
@@ -303,9 +293,7 @@ class MLflowTracker:
             )
 
         except ImportError:
-            logger.warning(
-                "MLflow is unavailable; model registration skipped."
-            )
+            logger.warning("MLflow is unavailable; model registration skipped.")
 
         except Exception as exc:
             logger.warning(
@@ -342,27 +330,20 @@ class MLflowTracker:
             for run in runs:
                 started = datetime.fromtimestamp(
                     run.info.start_time / 1000,
-                    tz=timezone.utc,
+                    tz=UTC,
                 )
 
                 duration = None
 
                 if run.info.end_time:
-                    duration = (
-                        run.info.end_time - run.info.start_time
-                    ) / 1000
+                    duration = (run.info.end_time - run.info.start_time) / 1000
 
                 summaries.append(
                     RunSummary(
                         run_id=run.info.run_id,
-                        run_name=(
-                            run.info.run_name
-                            or run.info.run_id[:8]
-                        ),
+                        run_name=(run.info.run_name or run.info.run_id[:8]),
                         status=run.info.status,
-                        started_at=started.strftime(
-                            "%Y-%m-%d %H:%M"
-                        ),
+                        started_at=started.strftime("%Y-%m-%d %H:%M"),
                         duration_seconds=duration,
                         metrics=dict(run.data.metrics),
                         params=dict(run.data.params),
@@ -388,9 +369,7 @@ class MLflowTracker:
             return []
 
         try:
-            versions = self._client.search_model_versions(
-                f"name='{name}'"
-            )
+            versions = self._client.search_model_versions(f"name='{name}'")
 
             summaries = [
                 ModelVersionSummary(
@@ -407,7 +386,7 @@ class MLflowTracker:
                     run_id=version.run_id,
                     created_at=datetime.fromtimestamp(
                         version.creation_timestamp / 1000,
-                        tz=timezone.utc,
+                        tz=UTC,
                     ).strftime("%Y-%m-%d %H:%M"),
                     description=version.description or "",
                 )

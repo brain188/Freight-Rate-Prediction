@@ -232,9 +232,7 @@ def evaluate(
     names = metrics or list(METRIC_FUNCTIONS)
 
     if unknown := [name for name in names if name not in METRIC_FUNCTIONS]:
-        raise MetricError(
-            f"unknown metrics {unknown} — available: {sorted(METRIC_FUNCTIONS)}"
-        )
+        raise MetricError(f"unknown metrics {unknown} — available: {sorted(METRIC_FUNCTIONS)}")
 
     scores = Scores(
         label=label,
@@ -286,9 +284,7 @@ def evaluate_by_segment(
         raise MetricError(f"unknown metric '{metric}'")
 
     rows = []
-    frame = pd.DataFrame(
-        {"group": groups.to_numpy(), "actual": actual, "predicted": predicted}
-    )
+    frame = pd.DataFrame({"group": groups.to_numpy(), "actual": actual, "predicted": predicted})
 
     for name, chunk in frame.groupby("group", observed=True):
         rows.append(

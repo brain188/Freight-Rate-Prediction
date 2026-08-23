@@ -50,11 +50,13 @@ def render(model_info: dict, runs: list, versions: list, tracker) -> html.Div:
     Returns:
         The tab content.
     """
-    return html.Div([
-        _serving_model(model_info, tracker),
-        _versions(versions, tracker),
-        _runs(runs, tracker),
-    ])
+    return html.Div(
+        [
+            _serving_model(model_info, tracker),
+            _versions(versions, tracker),
+            _runs(runs, tracker),
+        ]
+    )
 
 
 def _link(url: str | None, text: str) -> html.A | html.Span:
@@ -89,10 +91,12 @@ def _serving_model(model_info: dict, tracker) -> html.Div:
         The panel.
     """
     if not model_info:
-        return card(empty_state(
-            "Could not read the serving model.",
-            "Check that the API is running and has a model loaded.",
-        ))
+        return card(
+            empty_state(
+                "Could not read the serving model.",
+                "Check that the API is running and has a model loaded.",
+            )
+        )
 
     validation = model_info.get("validation", {})
     holdout = validation.get("holdout", {})
@@ -103,36 +107,47 @@ def _serving_model(model_info: dict, tracker) -> html.Div:
             "Read from the API itself, so this is the model actually answering "
             "requests rather than the newest one in the registry.",
         ),
-        row([
-            metric("Trained", model_info.get("trained_at", "unknown")[:16].replace("T", " ")),
-            metric("Estimator", model_info.get("estimator", "unknown")),
-            metric("Features", str(model_info.get("n_features", 0))),
-            metric("Known cities", str(model_info.get("known_cities", 0))),
-        ]),
+        row(
+            [
+                metric("Trained", model_info.get("trained_at", "unknown")[:16].replace("T", " ")),
+                metric("Estimator", model_info.get("estimator", "unknown")),
+                metric("Features", str(model_info.get("n_features", 0))),
+                metric("Known cities", str(model_info.get("known_cities", 0))),
+            ]
+        ),
     ]
 
     if holdout:
         children.append(html.Div(style={"height": "16px"}))
-        children.append(row([
-            metric("Holdout RMSE", f"${holdout.get('rmse', 0):,.2f}"),
-            metric("Holdout MAPE", f"{holdout.get('mape', 0):.2f}%"),
-            metric("R squared", f"{holdout.get('r2', 0):.4f}"),
-            metric(
-                "vs baseline",
-                f"{validation.get('improvement_over_baseline_pct', 0):.1f}%",
-                "better than median rate per mile",
-                OK,
-            ),
-        ]))
+        children.append(
+            row(
+                [
+                    metric("Holdout RMSE", f"${holdout.get('rmse', 0):,.2f}"),
+                    metric("Holdout MAPE", f"{holdout.get('mape', 0):.2f}%"),
+                    metric("R squared", f"{holdout.get('r2', 0):.4f}"),
+                    metric(
+                        "vs baseline",
+                        f"{validation.get('improvement_over_baseline_pct', 0):.1f}%",
+                        "better than median rate per mile",
+                        OK,
+                    ),
+                ]
+            )
+        )
 
-    children.append(html.Div([
-        html.Span("Trained on ", style={"fontSize": "12px", "color": MUTED}),
-        html.Span(
-            f"{model_info.get('training_rows', 0):,} loads from "
-            f"{model_info.get('training_from', '')} to {model_info.get('training_to', '')}",
-            style={"fontSize": "12px", "color": INK, "fontFamily": MONO},
-        ),
-    ], style={"marginTop": "18px"}))
+    children.append(
+        html.Div(
+            [
+                html.Span("Trained on ", style={"fontSize": "12px", "color": MUTED}),
+                html.Span(
+                    f"{model_info.get('training_rows', 0):,} loads from "
+                    f"{model_info.get('training_from', '')} to {model_info.get('training_to', '')}",
+                    style={"fontSize": "12px", "color": INK, "fontFamily": MONO},
+                ),
+            ],
+            style={"marginTop": "18px"},
+        )
+    )
 
     return card(children)
 
@@ -148,53 +163,66 @@ def _versions(versions: list, tracker) -> html.Div:
         The panel.
     """
     if not versions:
-        return card([
+        return card(
+            [
+                section(
+                    "Model registry",
+                    "Nothing registered yet. Training runs are registered "
+                    "automatically once a tracking server is reachable.",
+                ),
+                _mlflow_hint(tracker),
+            ]
+        )
+
+    rows = [
+        {
+            "version": f"v{v.version}",
+            "stage": v.stage,
+            "created": v.created_at,
+            "run": v.run_id[:8],
+        }
+        for v in versions
+    ]
+
+    return card(
+        [
             section(
                 "Model registry",
-                "Nothing registered yet. Training runs are registered "
-                "automatically once a tracking server is reachable.",
+                "Every version that has been registered. The production stage is the "
+                "one a deployment should be pulling.",
             ),
-            _mlflow_hint(tracker),
-        ])
-
-    rows = [{
-        "version": f"v{v.version}",
-        "stage": v.stage,
-        "created": v.created_at,
-        "run": v.run_id[:8],
-    } for v in versions]
-
-    return card([
-        section(
-            "Model registry",
-            "Every version that has been registered. The production stage is the "
-            "one a deployment should be pulling.",
-        ),
-        dash_table.DataTable(
-            data=rows,
-            columns=[
-                {"name": "Version", "id": "version"},
-                {"name": "Stage", "id": "stage"},
-                {"name": "Created", "id": "created"},
-                {"name": "Run", "id": "run"},
-            ],
-            style_table=TABLE_CONTAINER_STYLE,
-            style_cell={**TABLE_CELL_STYLE, "textAlign": "left"},
-            style_header=TABLE_HEADER_STYLE,
-            style_data=TABLE_DATA_STYLE,
-            css=TABLE_ROW_HOVER,
-            style_data_conditional=[{
-                "if": {"filter_query": "{stage} = 'Production'"},
-                "color": OK, "fontWeight": 600,
-            }],
-        ),
-        html.Div([
-            _link(
-                tracker.model_url(versions[0].name, versions[0].version),
-                "Open the registry in MLflow →",
-            )
-        ], style={"marginTop": "14px", "fontSize": "13px"}),
-    ])
+            dash_table.DataTable(
+                data=rows,
+                columns=[
+                    {"name": "Version", "id": "version"},
+                    {"name": "Stage", "id": "stage"},
+                    {"name": "Created", "id": "created"},
+                    {"name": "Run", "id": "run"},
+                ],
+                style_table=TABLE_CONTAINER_STYLE,
+                style_cell={**TABLE_CELL_STYLE, "textAlign": "left"},
+                style_header=TABLE_HEADER_STYLE,
+                style_data=TABLE_DATA_STYLE,
+                css=TABLE_ROW_HOVER,
+                style_data_conditional=[
+                    {
+                        "if": {"filter_query": "{stage} = 'Production'"},
+                        "color": OK,
+                        "fontWeight": 600,
+                    }
+                ],
+            ),
+            html.Div(
+                [
+                    _link(
+                        tracker.model_url(versions[0].name, versions[0].version),
+                        "Open the registry in MLflow →",
+                    )
+                ],
+                style={"marginTop": "14px", "fontSize": "13px"},
+            ),
+        ]
+    )
 
 
 def _runs(runs: list, tracker) -> html.Div:
@@ -208,14 +236,16 @@ def _runs(runs: list, tracker) -> html.Div:
         The panel.
     """
     if not runs:
-        return card([
-            section(
-                "Training runs",
-                "No runs recorded. Every call to entrypoint/train.py logs its "
-                "parameters, metrics and artifacts once MLflow is reachable.",
-            ),
-            _mlflow_hint(tracker),
-        ])
+        return card(
+            [
+                section(
+                    "Training runs",
+                    "No runs recorded. Every call to entrypoint/train.py logs its "
+                    "parameters, metrics and artifacts once MLflow is reachable.",
+                ),
+                _mlflow_hint(tracker),
+            ]
+        )
 
     rows = []
     for run in runs:
@@ -236,32 +266,37 @@ def _runs(runs: list, tracker) -> html.Div:
         {"name": "Started", "id": "started"},
     ] + [{"name": label, "id": key} for key, label, _ in RUN_METRICS]
 
-    return card([
-        section(
-            "Training runs",
-            "Every run with its holdout and cross validation scores. Click through "
-            "for parameters, artifacts and side by side comparison in MLflow, "
-            "which does that far better than reproducing it here would.",
-        ),
-        dash_table.DataTable(
-            data=rows,
-            columns=columns,
-            style_table=TABLE_CONTAINER_STYLE,
-            style_cell={**TABLE_CELL_STYLE, "textAlign": "right"},
-            style_cell_conditional=[
-                {"if": {"column_id": c}, "textAlign": "left"}
-                for c in ("run", "name", "started")
-            ],
-            style_header=TABLE_HEADER_STYLE,
-            style_data=TABLE_DATA_STYLE,
-            css=TABLE_ROW_HOVER,
-            page_size=12,
-        ),
-        html.Div([
-            html.Span("Latest run: ", style={"fontSize": "13px", "color": MUTED}),
-            _link(tracker.run_url(runs[0].run_id), f"open {runs[0].short_id} in MLflow →"),
-        ], style={"marginTop": "14px"}),
-    ])
+    return card(
+        [
+            section(
+                "Training runs",
+                "Every run with its holdout and cross validation scores. Click through "
+                "for parameters, artifacts and side by side comparison in MLflow, "
+                "which does that far better than reproducing it here would.",
+            ),
+            dash_table.DataTable(
+                data=rows,
+                columns=columns,
+                style_table=TABLE_CONTAINER_STYLE,
+                style_cell={**TABLE_CELL_STYLE, "textAlign": "right"},
+                style_cell_conditional=[
+                    {"if": {"column_id": c}, "textAlign": "left"}
+                    for c in ("run", "name", "started")
+                ],
+                style_header=TABLE_HEADER_STYLE,
+                style_data=TABLE_DATA_STYLE,
+                css=TABLE_ROW_HOVER,
+                page_size=12,
+            ),
+            html.Div(
+                [
+                    html.Span("Latest run: ", style={"fontSize": "13px", "color": MUTED}),
+                    _link(tracker.run_url(runs[0].run_id), f"open {runs[0].short_id} in MLflow →"),
+                ],
+                style={"marginTop": "14px"},
+            ),
+        ]
+    )
 
 
 def _mlflow_hint(tracker) -> html.Div:
@@ -285,13 +320,20 @@ def _mlflow_hint(tracker) -> html.Div:
     else:
         message = "No tracking server reachable. Start one with the command below."
 
-    return html.Div([
-        html.Div(message, style={"fontSize": "13px", "color": INK, "marginBottom": "10px"}),
-        html.Div(
-            "mlflow server --host 0.0.0.0 --port 5000",
-            style={
-                "fontFamily": MONO, "fontSize": "12px", "color": INK,
-                "background": TEAL_LIGHT, "padding": "10px 14px", "borderRadius": "6px",
-            },
-        ),
-    ], style={"marginTop": "8px"})
+    return html.Div(
+        [
+            html.Div(message, style={"fontSize": "13px", "color": INK, "marginBottom": "10px"}),
+            html.Div(
+                "mlflow server --host 0.0.0.0 --port 5000",
+                style={
+                    "fontFamily": MONO,
+                    "fontSize": "12px",
+                    "color": INK,
+                    "background": TEAL_LIGHT,
+                    "padding": "10px 14px",
+                    "borderRadius": "6px",
+                },
+            ),
+        ],
+        style={"marginTop": "8px"},
+    )

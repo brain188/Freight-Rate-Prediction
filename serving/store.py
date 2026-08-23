@@ -342,9 +342,7 @@ class PredictionStore:
             logger.error("Could not log %s predictions: %s", len(records), exc)
             return 0
 
-    def record_actual(
-        self, load_id: str, actual_rate: float, source: str = "api"
-    ) -> bool:
+    def record_actual(self, load_id: str, actual_rate: float, source: str = "api") -> bool:
         """Store the rate a load actually went for.
 
         Upserts, because a corrected figure should replace an earlier one
@@ -448,9 +446,7 @@ class PredictionStore:
         """
         with self._connection() as connection:
             return int(
-                connection.execute(
-                    select(func.count()).select_from(predictions)
-                ).scalar_one()
+                connection.execute(select(func.count()).select_from(predictions)).scalar_one()
             )
 
     def count_actuals(self) -> int:
@@ -463,11 +459,7 @@ class PredictionStore:
             StoreUnavailableError: If the database cannot be reached.
         """
         with self._connection() as connection:
-            return int(
-                connection.execute(
-                    select(func.count()).select_from(actuals)
-                ).scalar_one()
-            )
+            return int(connection.execute(select(func.count()).select_from(actuals)).scalar_one())
 
 
 _store: PredictionStore | None = None

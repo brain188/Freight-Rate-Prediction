@@ -74,9 +74,7 @@ class InferenceResult:
         )
 
 
-def _predict(
-    df: pd.DataFrame, bundle: ModelBundle, config: Config, label: str
-) -> np.ndarray:
+def _predict(df: pd.DataFrame, bundle: ModelBundle, config: Config, label: str) -> np.ndarray:
     """Clean, build features, and predict for one set of loads.
 
     Args:
@@ -110,9 +108,7 @@ def _predict(
     return bundle.model.predict(features)
 
 
-def predict_validation(
-    bundle: ModelBundle, config: Config
-) -> tuple[pd.Series, np.ndarray]:
+def predict_validation(bundle: ModelBundle, config: Config) -> tuple[pd.Series, np.ndarray]:
     """Score the 12,000 loads that need final predictions.
 
     Args:

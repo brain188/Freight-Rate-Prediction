@@ -243,9 +243,7 @@ def test_concurrent_writers_and_readers_do_not_lock(tmp_path):
         store = PredictionStore(url)
         store.connect()
         for batch in range(5):
-            written = store.log_predictions(
-                [make_record(f"{tag}{batch}{i}") for i in range(50)]
-            )
+            written = store.log_predictions([make_record(f"{tag}{batch}{i}") for i in range(50)])
             if written == 0:
                 failures.append(f"write {tag}{batch}")
 

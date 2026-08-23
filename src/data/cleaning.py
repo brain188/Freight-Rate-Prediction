@@ -136,9 +136,7 @@ def fit_cleaning_artifacts(df: pd.DataFrame, config: Config) -> CleaningArtifact
     by_equipment = weights.groupby(df["equipment"]).median()
     overall = float(weights.median())
 
-    market_index = (
-        df["market_index"] if "market_index" in df.columns else pd.Series(dtype=float)
-    )
+    market_index = df["market_index"] if "market_index" in df.columns else pd.Series(dtype=float)
     market_median = float(market_index.median()) if market_index.notna().any() else 0.0
 
     artifacts = CleaningArtifacts(
@@ -363,8 +361,6 @@ def _assert_clean(df: pd.DataFrame, config: Config, is_training: bool) -> None:
 
     if is_training:
         rate_per_mile = df[config.project.target] / df["distance"]
-        outside = ~rate_per_mile.between(
-            config.cleaning.rpm_lower, config.cleaning.rpm_upper
-        )
+        outside = ~rate_per_mile.between(config.cleaning.rpm_lower, config.cleaning.rpm_upper)
         if outside.any():
             raise CleaningError(f"{outside.sum()} corrupted rates survived filtering")

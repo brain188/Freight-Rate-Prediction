@@ -80,9 +80,7 @@ def add_fourier_terms(
         SeasonalityError: If the date column is missing or holds bad values.
     """
     if date_column not in df.columns:
-        raise SeasonalityError(
-            f"'{date_column}' not found — cannot build time features"
-        )
+        raise SeasonalityError(f"'{date_column}' not found — cannot build time features")
 
     if df[date_column].isna().any():
         raise SeasonalityError(f"'{date_column}' contains missing values")
@@ -98,9 +96,7 @@ def add_fourier_terms(
     return out
 
 
-def add_calendar_features(
-    df: pd.DataFrame, use_day_of_week: bool = True
-) -> pd.DataFrame:
+def add_calendar_features(df: pd.DataFrame, use_day_of_week: bool = True) -> pd.DataFrame:
     """Add plain calendar features that are safe to extrapolate.
 
     Only weekday is included. Month and day-of-year are deliberately left out:
@@ -234,8 +230,7 @@ class SeasonalIndex:
 
         if len(daily) < 4 * order:
             raise SeasonalityError(
-                f"need at least {4 * order} distinct days to fit order {order}, "
-                f"found {len(daily)}"
+                f"need at least {4 * order} distinct days to fit order {order}, found {len(daily)}"
             )
 
         blank = cls([], 0.0, order, period, 0.0)
@@ -329,9 +324,7 @@ class SeasonalIndex:
             raise SeasonalityError(f"could not read {path}: {exc}") from exc
 
 
-def check_extrapolation(
-    train_dates: pd.Series, predict_dates: pd.Series
-) -> dict[str, float]:
+def check_extrapolation(train_dates: pd.Series, predict_dates: pd.Series) -> dict[str, float]:
     """Measure how far the prediction dates fall outside the training window.
 
     Worth logging on every run: it is the reason the seasonal features are

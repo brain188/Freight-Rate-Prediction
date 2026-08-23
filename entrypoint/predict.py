@@ -53,9 +53,7 @@ def parse_args() -> argparse.Namespace:
         description="Predict every validation load and fill the December chart inputs.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
-            "examples:\n"
-            "  python entrypoint/predict.py\n"
-            "  python entrypoint/predict.py --score\n"
+            "examples:\n  python entrypoint/predict.py\n  python entrypoint/predict.py --score\n"
         ),
     )
     parser.add_argument(
@@ -73,7 +71,7 @@ def parse_args() -> argparse.Namespace:
         "--score",
         action="store_true",
         help="run the assessment's score.py afterwards to validate both files "
-             "and draw the December chart",
+        "and draw the December chart",
     )
     return parser.parse_args()
 

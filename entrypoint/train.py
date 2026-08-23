@@ -67,7 +67,7 @@ def parse_args() -> argparse.Namespace:
         "--skip-cv",
         action="store_true",
         help="skip cross-validation and score on the holdout only, which is "
-             "much faster while iterating",
+        "much faster while iterating",
     )
     parser.add_argument(
         "--skip-baseline",
@@ -89,9 +89,7 @@ def apply_overrides(config: Config, args: argparse.Namespace) -> Config:
     """
     if args.skip_cv:
         logger.warning("Cross-validation skipped — the holdout is the only estimate left")
-        config = dataclasses.replace(
-            config, split=dataclasses.replace(config.split, cv_folds=[])
-        )
+        config = dataclasses.replace(config, split=dataclasses.replace(config.split, cv_folds=[]))
 
     if args.skip_baseline:
         logger.warning("Baseline skipped — the model score has nothing to beat")
@@ -128,9 +126,7 @@ def report(result: TrainingResult, config: Config) -> None:
 
     # Written to disk so the report can quote the same numbers the run produced.
     results_path = config.paths.model_dir / RESULTS_FILE
-    results_path.write_text(
-        json.dumps(result.summary(), indent=2, default=str), encoding="utf-8"
-    )
+    results_path.write_text(json.dumps(result.summary(), indent=2, default=str), encoding="utf-8")
 
     print(f"\n{RULE}")
     print(f"Model beats the baseline by {result.improvement_over_baseline:.1f}% on RMSE.")

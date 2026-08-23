@@ -164,9 +164,7 @@ def population_stability_index(
     current_share = np.clip(current_share, floor, None)
 
     return float(
-        np.sum(
-            (current_share - reference_share) * np.log(current_share / reference_share)
-        )
+        np.sum((current_share - reference_share) * np.log(current_share / reference_share))
     )
 
 
@@ -198,9 +196,7 @@ def reference_data(config: Config) -> pd.DataFrame:
     Returns:
         The cleaned training loads.
     """
-    cleaned, _, _ = clean(
-        load_train(config), config, is_training=True, label="reference"
-    )
+    cleaned, _, _ = clean(load_train(config), config, is_training=True, label="reference")
     return cleaned
 
 
@@ -273,9 +269,7 @@ def compute_drift(
         categories = reference_share.index.union(current_share.index)
 
         floor = 1e-6
-        expected = reference_share.reindex(categories, fill_value=floor).clip(
-            lower=floor
-        )
+        expected = reference_share.reindex(categories, fill_value=floor).clip(lower=floor)
         actual = current_share.reindex(categories, fill_value=floor).clip(lower=floor)
         psi = float(np.sum((actual - expected) * np.log(actual / expected)))
 
@@ -361,9 +355,7 @@ def build_evidently_report(
         report = Report(metrics=[DataDriftPreset()])
         result = report.run(
             current_data=Dataset.from_pandas(current_frame, data_definition=definition),
-            reference_data=Dataset.from_pandas(
-                reference_frame, data_definition=definition
-            ),
+            reference_data=Dataset.from_pandas(reference_frame, data_definition=definition),
         )
 
         html = result.get_html_str(as_iframe=False)

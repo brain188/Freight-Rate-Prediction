@@ -117,9 +117,7 @@ def test_december_keeps_its_seven_columns(config, tmp_path, monkeypatch):
 
     import dataclasses
 
-    patched = dataclasses.replace(
-        config, paths=dataclasses.replace(config.paths, december=working)
-    )
+    patched = dataclasses.replace(config, paths=dataclasses.replace(config.paths, december=working))
 
     write_december(np.linspace(700.0, 900.0, 31), patched)
     written = pd.read_csv(working)
@@ -145,9 +143,7 @@ def test_december_row_count_must_match(config, tmp_path):
 
     import dataclasses
 
-    patched = dataclasses.replace(
-        config, paths=dataclasses.replace(config.paths, december=working)
-    )
+    patched = dataclasses.replace(config, paths=dataclasses.replace(config.paths, december=working))
 
     with pytest.raises(InferenceError, match="rows"):
         write_december(np.ones(10) * 800.0, patched)

@@ -27,9 +27,7 @@ def pytest_configure(config: pytest.Config) -> None:
     Args:
         config: The pytest configuration object.
     """
-    config.addinivalue_line(
-        "markers", "integration: needs the assessment CSVs to be present"
-    )
+    config.addinivalue_line("markers", "integration: needs the assessment CSVs to be present")
 
 
 @pytest.fixture(scope="session")
@@ -57,9 +55,7 @@ def make_loads(n: int = 400, seed: int = 0, with_target: bool = True) -> pd.Data
     names = list(CITIES)
 
     pickup = rng.choice(names, n)
-    delivery = np.array(
-        [rng.choice([c for c in names if c != origin]) for origin in pickup]
-    )
+    delivery = np.array([rng.choice([c for c in names if c != origin]) for origin in pickup])
 
     distance = rng.uniform(100, 2000, n).round(1)
     equipment = rng.choice(["Dry Van", "Reefer", "Flatbed"], n)
@@ -76,8 +72,7 @@ def make_loads(n: int = 400, seed: int = 0, with_target: bool = True) -> pd.Data
             "distance": distance,
             "equipment": equipment,
             "weight": rng.uniform(5_000, 45_000, n).round(0),
-            "date": pd.to_datetime("2025-01-01")
-            + pd.to_timedelta(rng.integers(0, 300, n), "D"),
+            "date": pd.to_datetime("2025-01-01") + pd.to_timedelta(rng.integers(0, 300, n), "D"),
             "market_index": rng.normal(100, 10, n).round(2),
             "quote_signal": rng.normal(0, 1, n).round(3),
         }

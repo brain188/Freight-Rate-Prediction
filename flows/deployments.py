@@ -51,7 +51,5 @@ def register() -> None:
 
 
 if __name__ == "__main__":
-    logger.info(
-        "Registering deployments. Monitor %s, retrain %s", MONITOR_CRON, RETRAIN_CRON
-    )
+    logger.info("Registering deployments. Monitor %s, retrain %s", MONITOR_CRON, RETRAIN_CRON)
     register()

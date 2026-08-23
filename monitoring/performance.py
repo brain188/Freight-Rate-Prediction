@@ -96,9 +96,7 @@ def load_predictions(store: PredictionStore, days: int = 30) -> pd.DataFrame:
             actuals.c.actual_rate,
             actuals.c.recorded_at,
         )
-        .select_from(
-            predictions.outerjoin(actuals, actuals.c.load_id == predictions.c.load_id)
-        )
+        .select_from(predictions.outerjoin(actuals, actuals.c.load_id == predictions.c.load_id))
         .where(predictions.c.predicted_at >= since)
         .order_by(predictions.c.predicted_at.desc())
     )
@@ -155,9 +153,7 @@ def snapshot(store: PredictionStore, days: int = 30) -> PerformanceSnapshot:
     now = datetime.now(UTC).isoformat(timespec="seconds")
 
     if frame.empty:
-        return PerformanceSnapshot(
-            window_days=days, n_predictions=0, n_scored=0, computed_at=now
-        )
+        return PerformanceSnapshot(window_days=days, n_predictions=0, n_scored=0, computed_at=now)
 
     scored = frame[frame["actual_rate"].notna()]
 
@@ -196,9 +192,7 @@ def snapshot(store: PredictionStore, days: int = 30) -> PerformanceSnapshot:
     return result
 
 
-def daily_metrics(
-    store: PredictionStore, days: int = 30, metric: str = "mape"
-) -> pd.DataFrame:
+def daily_metrics(store: PredictionStore, days: int = 30, metric: str = "mape") -> pd.DataFrame:
     """Track one metric day by day.
 
     Args:
@@ -225,9 +219,7 @@ def daily_metrics(
                 "day": day,
                 "n_predictions": len(chunk),
                 "n_scored": len(scored),
-                metric: round(
-                    float(function(scored["actual_rate"], scored["predicted_rate"])), 4
-                )
+                metric: round(float(function(scored["actual_rate"], scored["predicted_rate"])), 4)
                 if len(scored)
                 else None,
             }
@@ -281,9 +273,7 @@ def segment_metrics(
                 "group": str(name),
                 "n_predictions": len(chunk),
                 "n_scored": len(scored),
-                metric: round(
-                    float(function(scored["actual_rate"], scored["predicted_rate"])), 4
-                )
+                metric: round(float(function(scored["actual_rate"], scored["predicted_rate"])), 4)
                 if len(scored)
                 else None,
             }
@@ -315,9 +305,7 @@ def traffic_summary(store: PredictionStore, days: int = 7) -> dict:
         "window_days": days,
         "n_predictions": len(frame),
         "unknown_city_rate": round(float(frame["unknown_city"].mean()), 4),
-        "date_beyond_training_rate": round(
-            float(frame["date_beyond_training"].mean()), 4
-        ),
+        "date_beyond_training_rate": round(float(frame["date_beyond_training"].mean()), 4),
         "mean_predicted_rate": round(float(frame["predicted_rate"].mean()), 2),
         "median_predicted_rate": round(float(frame["predicted_rate"].median()), 2),
         "mean_rate_per_mile": round(float(frame["rate_per_mile"].mean()), 3),

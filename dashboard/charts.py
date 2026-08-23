@@ -46,7 +46,7 @@ def _rgba(hex_colour: str, alpha: float) -> str:
         An rgba string.
     """
     hex_colour = hex_colour.lstrip("#")
-    r, g, b = (int(hex_colour[i:i + 2], 16) for i in (0, 2, 4))
+    r, g, b = (int(hex_colour[i : i + 2], 16) for i in (0, 2, 4))
     return f"rgba({r},{g},{b},{alpha})"
 
 
@@ -145,7 +145,8 @@ def density_plot(
     if grid is None:
         figure.update_layout(**CHART_LAYOUT, height=320, title=title)
         figure.add_annotation(
-            text="Not enough data to plot", showarrow=False,
+            text="Not enough data to plot",
+            showarrow=False,
             font={"size": 13, "color": MUTED},
         )
         return figure
@@ -165,9 +166,13 @@ def density_plot(
             continue
 
         figure.add_scatter(
-            x=grid, y=density, mode="lines", name=f"{label}  (n={len(values.dropna()):,})",
+            x=grid,
+            y=density,
+            mode="lines",
+            name=f"{label}  (n={len(values.dropna()):,})",
             line={"color": colour, "width": 2.4, "dash": dash},
-            fill="tozeroy", fillcolor=_rgba(colour, alpha),
+            fill="tozeroy",
+            fillcolor=_rgba(colour, alpha),
             hovertemplate=f"{label}<br>%{{x:,.0f}}<extra></extra>",
         )
 
@@ -178,8 +183,11 @@ def density_plot(
     layout["legend"] = {"orientation": "h", "y": -0.22, "font": {"size": 11}}
 
     figure.update_layout(
-        **layout, height=320, title=title,
-        xaxis_title=x_label, yaxis_title="density",
+        **layout,
+        height=320,
+        title=title,
+        xaxis_title=x_label,
+        yaxis_title="density",
     )
     figure.update_yaxes(showticklabels=False)
 
@@ -239,7 +247,8 @@ def predicted_vs_actual_series(frame: pd.DataFrame, resample: str = "D") -> go.F
     if frame is None or frame.empty:
         figure.update_layout(**CHART_LAYOUT, height=330, title="Predicted against actual")
         figure.add_annotation(
-            text="No traffic yet", showarrow=False,
+            text="No traffic yet",
+            showarrow=False,
             font={"size": 13, "color": MUTED},
         )
         return figure
@@ -253,15 +262,22 @@ def predicted_vs_actual_series(frame: pd.DataFrame, resample: str = "D") -> go.F
     actual = scored.groupby("bucket")["actual_rate"].mean() if not scored.empty else None
 
     figure.add_scatter(
-        x=predicted.index, y=predicted.to_numpy(), mode="lines+markers",
-        name="Predicted", line={"color": TEAL, "width": 2.6}, marker={"size": 5},
+        x=predicted.index,
+        y=predicted.to_numpy(),
+        mode="lines+markers",
+        name="Predicted",
+        line={"color": TEAL, "width": 2.6},
+        marker={"size": 5},
         hovertemplate="Predicted $%{y:,.0f}<extra></extra>",
     )
 
     if actual is not None and not actual.empty:
         figure.add_scatter(
-            x=actual.index, y=actual.to_numpy(), mode="lines+markers",
-            name="Actual", line={"color": WARN, "width": 2.6, "dash": "dot"},
+            x=actual.index,
+            y=actual.to_numpy(),
+            mode="lines+markers",
+            name="Actual",
+            line={"color": WARN, "width": 2.6, "dash": "dot"},
             marker={"size": 5},
             hovertemplate="Actual $%{y:,.0f}<extra></extra>",
         )
@@ -271,15 +287,18 @@ def predicted_vs_actual_series(frame: pd.DataFrame, resample: str = "D") -> go.F
         last_actual = actual.index.max()
         if predicted.index.max() > last_actual:
             figure.add_vrect(
-                x0=last_actual, x1=predicted.index.max(),
-                fillcolor=_rgba(MUTED, 0.07), line_width=0,
+                x0=last_actual,
+                x1=predicted.index.max(),
+                fillcolor=_rgba(MUTED, 0.07),
+                line_width=0,
                 annotation_text="awaiting outcomes",
                 annotation_position="top left",
                 annotation={"font": {"size": 10, "color": MUTED}},
             )
 
     figure.update_layout(
-        **CHART_LAYOUT, height=330,
+        **CHART_LAYOUT,
+        height=330,
         title=f"Predicted against actual, daily average by {axis_label}",
         yaxis_title="rate ($)",
     )
@@ -302,7 +321,8 @@ def error_over_time(frame: pd.DataFrame, resample: str = "D") -> go.Figure:
     if scored is None or scored.empty:
         figure.update_layout(**CHART_LAYOUT, height=260, title="Prediction error over time")
         figure.add_annotation(
-            text="No confirmed rates yet", showarrow=False,
+            text="No confirmed rates yet",
+            showarrow=False,
             font={"size": 13, "color": MUTED},
         )
         return figure
@@ -317,24 +337,37 @@ def error_over_time(frame: pd.DataFrame, resample: str = "D") -> go.Figure:
     spread = grouped.std().fillna(0.0)
 
     figure.add_scatter(
-        x=mean_error.index, y=(mean_error + spread).to_numpy(),
-        mode="lines", line={"width": 0}, showlegend=False, hoverinfo="skip",
-    )
-    figure.add_scatter(
-        x=mean_error.index, y=(mean_error - spread).to_numpy(),
-        mode="lines", line={"width": 0}, fill="tonexty",
-        fillcolor=_rgba(TEAL, 0.13), name="one standard deviation",
+        x=mean_error.index,
+        y=(mean_error + spread).to_numpy(),
+        mode="lines",
+        line={"width": 0},
+        showlegend=False,
         hoverinfo="skip",
     )
     figure.add_scatter(
-        x=mean_error.index, y=mean_error.to_numpy(), mode="lines+markers",
-        name="mean error", line={"color": TEAL, "width": 2.4}, marker={"size": 4},
+        x=mean_error.index,
+        y=(mean_error - spread).to_numpy(),
+        mode="lines",
+        line={"width": 0},
+        fill="tonexty",
+        fillcolor=_rgba(TEAL, 0.13),
+        name="one standard deviation",
+        hoverinfo="skip",
+    )
+    figure.add_scatter(
+        x=mean_error.index,
+        y=mean_error.to_numpy(),
+        mode="lines+markers",
+        name="mean error",
+        line={"color": TEAL, "width": 2.4},
+        marker={"size": 4},
         hovertemplate="$%{y:,.0f}<extra></extra>",
     )
     figure.add_hline(y=0, line_dash="dash", line_color=MUTED)
 
     figure.update_layout(
-        **CHART_LAYOUT, height=260,
+        **CHART_LAYOUT,
+        height=260,
         title="Prediction error over time, actual minus predicted",
         yaxis_title="error ($)",
     )

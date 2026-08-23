@@ -130,9 +130,7 @@ def decide_action(drift: dict, performance: dict) -> dict:
         )
 
     if drift.get("drifted_features"):
-        reasons.append(
-            "feature distributions have moved: " + ", ".join(drift["drifted_features"])
-        )
+        reasons.append("feature distributions have moved: " + ", ".join(drift["drifted_features"]))
 
     action = "retrain" if reasons else "none"
 
@@ -206,9 +204,7 @@ def monitor_flow(
     traffic = traffic_summary(store, days)
 
     if not traffic.get("n_predictions"):
-        logger.warning(
-            "No traffic in the last %s days, so there is nothing to check", days
-        )
+        logger.warning("No traffic in the last %s days, so there is nothing to check", days)
         return {"action": "none", "reasons": ["no traffic"], "n_predictions": 0}
 
     drift = check_drift(config, store, days)

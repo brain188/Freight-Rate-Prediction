@@ -61,19 +61,36 @@ def parse_args() -> argparse.Namespace:
             "  python simulator/replay.py --days 14 --no-outcomes\n"
         ),
     )
-    parser.add_argument("--api-url", default=DEFAULT_API, help=f"API base URL (default: {DEFAULT_API})")
-    parser.add_argument("--speed", type=float, default=20.0,
-                        help="simulated days per real second (default: 20)")
-    parser.add_argument("--days", type=int, default=None,
-                        help="stop after this many simulated days")
-    parser.add_argument("--scenario", default="peak_season", choices=sorted(SCENARIOS),
-                        help="how synthetic outcomes behave (default: peak_season)")
-    parser.add_argument("--feedback-delay", type=int, default=3,
-                        help="simulated days before an outcome is reported (default: 3)")
-    parser.add_argument("--feedback-rate", type=float, default=0.65,
-                        help="share of loads that ever report an outcome (default: 0.65)")
-    parser.add_argument("--no-outcomes", action="store_true",
-                        help="send predictions only, so nothing can be scored")
+    parser.add_argument(
+        "--api-url", default=DEFAULT_API, help=f"API base URL (default: {DEFAULT_API})"
+    )
+    parser.add_argument(
+        "--speed", type=float, default=20.0, help="simulated days per real second (default: 20)"
+    )
+    parser.add_argument(
+        "--days", type=int, default=None, help="stop after this many simulated days"
+    )
+    parser.add_argument(
+        "--scenario",
+        default="peak_season",
+        choices=sorted(SCENARIOS),
+        help="how synthetic outcomes behave (default: peak_season)",
+    )
+    parser.add_argument(
+        "--feedback-delay",
+        type=int,
+        default=3,
+        help="simulated days before an outcome is reported (default: 3)",
+    )
+    parser.add_argument(
+        "--feedback-rate",
+        type=float,
+        default=0.65,
+        help="share of loads that ever report an outcome (default: 0.65)",
+    )
+    parser.add_argument(
+        "--no-outcomes", action="store_true", help="send predictions only, so nothing can be scored"
+    )
     parser.add_argument("--seed", type=int, default=42)
     return parser.parse_args()
 
@@ -161,8 +178,7 @@ def wait_for_api(client: httpx.Client, attempts: int = 10) -> dict:
         time.sleep(1.0 + attempt * 0.5)
 
     raise ReplayError(
-        "could not reach a ready API. Start it with:\n"
-        "  uvicorn serving.app:app --port 8000"
+        "could not reach a ready API. Start it with:\n  uvicorn serving.app:app --port 8000"
     )
 
 
@@ -179,7 +195,7 @@ def send_day(client: httpx.Client, loads: pd.DataFrame) -> list[dict]:
     results = []
 
     for start in range(0, len(loads), BATCH_SIZE):
-        chunk = loads.iloc[start:start + BATCH_SIZE]
+        chunk = loads.iloc[start : start + BATCH_SIZE]
         payloads = [to_payload(row) for _, row in chunk.iterrows()]
 
         try:
@@ -190,12 +206,14 @@ def send_day(client: httpx.Client, loads: pd.DataFrame) -> list[dict]:
             continue
 
         for payload, prediction in zip(payloads, response.json()["predictions"]):
-            results.append({
-                "load_id": payload["load_id"],
-                "load_date": pd.Timestamp(payload["date"]).date(),
-                "predicted_rate": prediction["predicted_rate"],
-                "unknown_city": prediction["warnings"]["unknown_city"],
-            })
+            results.append(
+                {
+                    "load_id": payload["load_id"],
+                    "load_date": pd.Timestamp(payload["date"]).date(),
+                    "predicted_rate": prediction["predicted_rate"],
+                    "unknown_city": prediction["warnings"]["unknown_city"],
+                }
+            )
 
     return results
 
@@ -249,7 +267,12 @@ def run(args: argparse.Namespace) -> int:
     print(f"period         {days[0]} to {days[-1]}")
     print(f"scenario       {scenario.name}")
     print(f"               {scenario.description}")
-    print(f"outcomes       {'disabled' if args.no_outcomes else f'{args.feedback_rate:.0%} reported after {args.feedback_delay} days'}")
+    outcomes = (
+        "disabled"
+        if args.no_outcomes
+        else f"{args.feedback_rate:.0%} reported after {args.feedback_delay} days"
+    )
+    print(f"outcomes       {outcomes}")
     print(f"speed          {args.speed:g} simulated days per second")
     print(RULE)
 
@@ -262,8 +285,10 @@ def run(args: argparse.Namespace) -> int:
 
     with httpx.Client(base_url=args.api_url) as client:
         health = wait_for_api(client)
-        print(f"API ready, model {health['model_version']}, "
-              f"logging {'on' if health.get('store_available') else 'OFF'}\n")
+        print(
+            f"API ready, model {health['model_version']}, "
+            f"logging {'on' if health.get('store_available') else 'OFF'}\n"
+        )
 
         print(f"{'day':<12}{'priced':>8}{'unknown':>9}{'outcomes':>10}  {'running MAPE':>12}")
 
@@ -331,8 +356,10 @@ def _print_summary(client: httpx.Client, totals: dict) -> None:
     """
     print(f"\n{RULE}")
     print(f"priced         {totals['priced']:,}")
-    print(f"unknown city   {totals['unknown_city']:,} "
-          f"({totals['unknown_city'] / max(totals['priced'], 1):.1%})")
+    print(
+        f"unknown city   {totals['unknown_city']:,} "
+        f"({totals['unknown_city'] / max(totals['priced'], 1):.1%})"
+    )
     print(f"outcomes       {totals['outcomes']:,}")
 
     try:
@@ -343,8 +370,10 @@ def _print_summary(client: httpx.Client, totals: dict) -> None:
         return
 
     print(f"\nMonitoring\n{RULE}")
-    print(f"coverage             {performance['coverage']:.1%} "
-          f"({performance['n_scored']:,} of {performance['n_predictions']:,} scored)")
+    print(
+        f"coverage             {performance['coverage']:.1%} "
+        f"({performance['n_scored']:,} of {performance['n_predictions']:,} scored)"
+    )
     print(f"reliable             {performance['is_reliable']}")
 
     for name in ("rmse", "mae", "mape", "r2", "bias"):
@@ -369,6 +398,7 @@ def main() -> int:
 
     # httpx logs every request at INFO, which buries the replay's own output.
     import logging
+
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
     try:

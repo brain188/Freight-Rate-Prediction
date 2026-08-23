@@ -242,8 +242,7 @@ class FeaturesConfig:
         # appear in training, so encoding by name alone would break 12% of rows.
         if not self.use_coordinates:
             raise ConfigError(
-                "features.use_coordinates must stay true — unseen cities have "
-                "no other fallback"
+                "features.use_coordinates must stay true — unseen cities have no other fallback"
             )
 
 
@@ -308,9 +307,7 @@ class SubmissionConfig:
         Returns:
             IDs from TE-000001 through TE-012000.
         """
-        return {
-            f"{self.id_prefix}{index:06d}" for index in range(1, self.expected_rows + 1)
-        }
+        return {f"{self.id_prefix}{index:06d}" for index in range(1, self.expected_rows + 1)}
 
 
 @dataclass(frozen=True)

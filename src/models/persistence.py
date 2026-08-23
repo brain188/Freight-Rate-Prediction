@@ -96,9 +96,7 @@ class ModelBundle:
         metadata_path = directory / METADATA_FILE
 
         if not model_path.is_file():
-            raise PersistenceError(
-                f"no model at {model_path} — run the training pipeline first"
-            )
+            raise PersistenceError(f"no model at {model_path} — run the training pipeline first")
 
         try:
             model = joblib.load(model_path)
@@ -217,17 +215,13 @@ def save_predictions(
     )
 
     if len(frame) != settings.expected_rows:
-        raise PersistenceError(
-            f"expected {settings.expected_rows:,} rows, got {len(frame):,}"
-        )
+        raise PersistenceError(f"expected {settings.expected_rows:,} rows, got {len(frame):,}")
 
     if frame[settings.id_column].duplicated().any():
         raise PersistenceError("submission contains duplicate load_id values")
 
     if set(frame[settings.id_column]) != settings.expected_ids():
-        raise PersistenceError(
-            "submission load_id values do not match the scorer's set"
-        )
+        raise PersistenceError("submission load_id values do not match the scorer's set")
 
     if frame[settings.prediction_column].isna().any():
         raise PersistenceError("submission contains missing predictions")
